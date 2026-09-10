@@ -51,7 +51,13 @@ and `apps/api/circle-recovery/`.
 
    Saves `apps/api/circle-entity-public-key.pem` and tells you to set
    `CIRCLE_ENTITY_PUBLIC_KEY_FILE=./circle-entity-public-key.pem` in `.env`
-   if it isn't there already.
+   if it isn't there already. `_FILE` is fine for local dev where the file
+   actually exists on disk, but it's gitignored and never ships to a real
+   deploy target (Railway, Render or anywhere else) - a hosted environment
+   needs `CIRCLE_ENTITY_PUBLIC_KEY` set instead, with the `.pem`'s contents
+   pasted directly as the value (`entity-secret.ts`'s `readSecret` checks
+   the inline var first). The key itself isn't secret, so this is safe to
+   paste straight into a hosting dashboard.
 
 4. Create a wallet set:
 

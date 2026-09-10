@@ -5,7 +5,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "npm run build && tsx --env-file-if-exists=.env dist/main.js",
-    "start": "npm run build && tsx --env-file-if-exists=.env dist/main.js",
+    "start": "npm run build && npm run migrate --workspace=@paymod/database && tsx --env-file-if-exists=.env dist/main.js",
     "typecheck": "tsc --noEmit",
     "pretest": "npm run build",
     "test": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.test --test --test-concurrency=1 src/**/*.test.ts"
