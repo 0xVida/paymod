@@ -31,9 +31,14 @@ export default function PaymodCode() {
             </div>
           </div>
 
-          <button type="button" className="code-install pc-label" disabled>
+          <a
+            href="https://marketplace.visualstudio.com/items?itemName=paymod.paymod-code"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="code-install pc-label"
+          >
             Install on VS Code
-          </button>
+          </a>
         </div>
 
         <div className="editor">

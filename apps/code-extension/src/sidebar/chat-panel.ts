@@ -54,7 +54,7 @@ const BYOK_BASE_URL: Record<"openai" | "anthropic", string> = {
 };
 
 function getApiUrl(): string {
-  return vscode.workspace.getConfiguration("paymodCode").get<string>("apiUrl", "http://localhost:3001");
+  return vscode.workspace.getConfiguration("paymodCode").get<string>("apiUrl", "https://paymodapi-production.up.railway.app");
 }
 
 /** `byok: true` sends the request straight to the real provider with the user's own key - no Paymod proxy, no Paymod balance touched, no billing artifact created for that call (see PAYMOD_CODE_PLAN.md section 3). */

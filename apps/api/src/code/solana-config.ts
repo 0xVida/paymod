@@ -1,4 +1,5 @@
 import { Keypair, PublicKey } from "@solana/web3.js";
+import bs58 from "bs58";
 
 /**
  * Solana-facing env vars for Paymod Code's deposit flow. Unlike
@@ -41,9 +42,14 @@ export function getTreasuryUsdcAddress(): PublicKey {
  * is bounded to wasting its own SOL - it can't move USDC without the
  * deposit address's own signature. No devnet default, same reasoning as
  * the treasury address.
+ *
+ * base58, not base64: the format every Solana wallet (Phantom, Solflare)
+ * and the CLI already export/import a secret key as, so no conversion
+ * step is needed between generating or exporting the key and pasting it
+ * in here.
  */
 export function getRelayerKeypair(): Keypair {
   const secret = process.env.SOLANA_RELAYER_SECRET_KEY;
   if (!secret) throw new Error("SOLANA_RELAYER_SECRET_KEY is not configured");
-  return Keypair.fromSecretKey(Buffer.from(secret, "base64"));
+  return Keypair.fromSecretKey(bs58.decode(secret));
 }

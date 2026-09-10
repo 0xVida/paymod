@@ -1,10 +1,12 @@
 # Paymod Code
 
-Local AI coding agent for VS Code. The extension has a persisted session UI,
-device-code sign-in, local tools, diff review and OpenAI/Anthropic adapters
-through Paymod's inference proxy.
+A pay-as-you-go coding agent that reads, edits, runs and tests your real
+project locally. This extension brings it into VS Code: a persisted session
+UI, device-code sign-in, local tools, diff review, and OpenAI/Anthropic
+models through Paymod's metered inference proxy (or your own API key).
 
-Usage billing, account funding, task-cost reporting, MCP client support and
-CLI support are not implemented. See `docs/Paymod-code-build-plan.md` for
-the current status and `docs/adr/0011-paymod-code-product-direction.md` for
-the product direction.
+Prefer the terminal? The same agent is also available as a CLI:
+
+```sh
+npm install -g @paymod/code-cli
+```

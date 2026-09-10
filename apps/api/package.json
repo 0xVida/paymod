@@ -25,6 +25,7 @@
     "@solana/web3.js": "^1.98.4",
     "@stellar/stellar-sdk": "^14.0.0",
     "@types/cookie-parser": "^1.4.10",
+    "bs58": "^4.0.1",
     "bullmq": "^5.34.2",
     "cookie-parser": "^1.4.7",
     "express": "^4.21.2",

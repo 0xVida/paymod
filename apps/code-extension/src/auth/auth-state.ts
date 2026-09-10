@@ -3,11 +3,11 @@ import { PaymodCodeClient, pollUntilResolved } from "@paymod/code-core";
 import { CredentialStore } from "./credential-store.js";
 
 function getWebUrl(): string {
-  return vscode.workspace.getConfiguration("paymodCode").get<string>("webUrl", "http://localhost:3000");
+  return vscode.workspace.getConfiguration("paymodCode").get<string>("webUrl", "https://paymod.xyz");
 }
 
 function getApiUrl(): string {
-  return vscode.workspace.getConfiguration("paymodCode").get<string>("apiUrl", "http://localhost:3001");
+  return vscode.workspace.getConfiguration("paymodCode").get<string>("apiUrl", "https://paymodapi-production.up.railway.app");
 }
 
 /**

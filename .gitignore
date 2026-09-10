@@ -28,8 +28,6 @@ next-env.d.ts
 
 # Stellar contract artifacts and local Testnet configuration
 contracts/treasury/target/
-contracts/treasury/.env
-contracts/treasury/relayer-spike/.env
 tools/paymod-testnet/.state/
 tools/paymod-testnet/.state.stellar-backup/
 
@@ -44,11 +42,11 @@ tools/paymod-testnet/.state.stellar-backup/
 *.sln
 *.sw?
 
-# Local database credentials
-packages/database/.env
-
-apps/api/.env
-apps/mcp-server/.env
+# All .env files, anywhere in the repo, except checked-in templates.
+.env
+.env.*
+!.env.example
+!.env.test
 
 # Circle entity secret recovery files and the entity public key file - not
 # secret in the key's own case, but environment-specific config that has no

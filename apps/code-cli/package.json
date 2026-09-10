@@ -1,26 +1,39 @@
 {
   "name": "@paymod/code-cli",
-  "private": true,
+  "version": "0.0.1",
+  "description": "Paymod Code: a pay-as-you-go coding agent for the terminal.",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paymoderator/paymod.git",
+    "directory": "apps/code-cli"
+  },
   "type": "module",
   "bin": {
-    "paymod-code": "./bin/paymod-code.mjs"
+    "paymod-code": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "node esbuild.config.mjs",
+    "package": "node esbuild.config.mjs --production",
     "dev": "tsx src/cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test $(find src -name '*.test.ts')"
   },
-  "dependencies": {
+  "devDependencies": {
     "@paymod/code-core": "file:../../packages/code-core",
+    "@types/node": "^22.16.5",
+    "@types/react": "^19.2.18",
+    "esbuild": "^0.24.0",
     "ink": "^7.1.1",
     "open": "^10.1.0",
     "react": "^19.2.0",
-    "tsx": "^4.20.6"
-  },
-  "devDependencies": {
-    "@types/node": "^22.16.5",
-    "@types/react": "^19.2.18",
+    "tsx": "^4.20.6",
     "typescript": "^5.8.3"
   }
 }

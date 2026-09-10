@@ -2,11 +2,11 @@ import { PaymodCodeClient, pollUntilResolved } from "@paymod/code-core";
 import { FileCredentialStore } from "./file-credential-store.js";
 
 export function getApiUrl(): string {
-  return process.env["PAYMOD_API_URL"] ?? "http://localhost:3001";
+  return process.env["PAYMOD_API_URL"] ?? "https://paymodapi-production.up.railway.app";
 }
 
 export function getWebUrl(): string {
-  return process.env["PAYMOD_WEB_URL"] ?? "http://localhost:3000";
+  return process.env["PAYMOD_WEB_URL"] ?? "https://paymod.xyz";
 }
 
 /**

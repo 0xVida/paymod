@@ -3,7 +3,7 @@ import { PaymodCodeClient } from "@paymod/code-core";
 import type { AuthState } from "./auth-state.js";
 
 function getApiUrl(): string {
-  return vscode.workspace.getConfiguration("paymodCode").get<string>("apiUrl", "http://localhost:3001");
+  return vscode.workspace.getConfiguration("paymodCode").get<string>("apiUrl", "https://paymodapi-production.up.railway.app");
 }
 
 /**

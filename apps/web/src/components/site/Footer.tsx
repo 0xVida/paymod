@@ -19,6 +19,10 @@ const COLS: [string, [string, string][]][] = [
       ["Docs", "/docs"],
       ["MCP", "#surfaces"],
       ["SDK", "#surfaces"],
+      [
+        "VS Code Extension",
+        "https://marketplace.visualstudio.com/items?itemName=paymod.paymod-code",
+      ],
       ["GitHub", "https://github.com/paymoderator"],
     ],
   ],

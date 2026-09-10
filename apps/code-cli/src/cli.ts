@@ -1,4 +1,3 @@
-#!/usr/bin/env -S node --import tsx
 import React from "react";
 import { render } from "ink";
 import { mkdir } from "node:fs/promises";

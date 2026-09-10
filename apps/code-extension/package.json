@@ -3,8 +3,7 @@
   "publisher": "paymod",
   "displayName": "Paymod Code",
   "description": "Pay-as-you-go AI coding agent, funded through Paymod.",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.0.2",
   "license": "UNLICENSED",
   "repository": {
     "type": "git",
@@ -105,12 +104,12 @@
       "properties": {
         "paymodCode.webUrl": {
           "type": "string",
-          "default": "http://localhost:3000",
+          "default": "https://paymod.xyz",
           "description": "Base URL of the Paymod dashboard, used to open the sign-in page in your browser."
         },
         "paymodCode.apiUrl": {
           "type": "string",
-          "default": "http://localhost:3001",
+          "default": "https://paymodapi-production.up.railway.app",
           "description": "Base URL of the Paymod API, used for device-code sign-in and inference requests."
         }
       }
@@ -120,14 +119,15 @@
     "build": "node esbuild.config.mjs && npm run build:webview",
     "build:webview": "npm run build --workspace=@paymod/code-webview-ui",
     "package": "node esbuild.config.mjs --production && npm run build:webview",
+    "vscode:prepublish": "npm run package",
+    "vsix": "npx @vscode/vsce package --no-dependencies",
+    "publish": "npx @vscode/vsce publish --no-dependencies",
     "typecheck": "tsc --noEmit",
     "test": "files=$(find src -name '*.test.ts'); if [ -z \"$files\" ]; then echo 'No *.test.ts files - everything vscode-free has moved to @paymod/code-core, this workspace has no unit tests of its own right now (see test:e2e).'; else tsx --test $files; fi",
     "test:e2e": "npm run build && node esbuild.config.mjs --tests && tsx src/test/run-e2e.ts"
   },
-  "dependencies": {
-    "@paymod/code-core": "file:../../packages/code-core"
-  },
   "devDependencies": {
+    "@paymod/code-core": "file:../../packages/code-core",
     "@types/node": "^22.16.5",
     "@types/vscode": "^1.90.0",
     "@vscode/test-electron": "^2.4.1",
