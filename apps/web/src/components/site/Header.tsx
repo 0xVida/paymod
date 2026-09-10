@@ -2,34 +2,19 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { api } from "@/lib/api";
 import { MENU_LINKS } from "@/lib/nav";
 import { scrollToId } from "@/lib/scroll";
 import Logo from "./Logo";
 
+/**
+ * always links to `/dashboard` rather than checking sign-in state itself -
+ * `(dashboard)/dashboard/layout.tsx` already redirects to `/login` when
+ * there's no session, so this stays a static link with zero API dependency
+ * instead of a second, redundant auth check that could block or flash.
+ */
 export default function Header() {
-  /**
-   * starts signed-out so the page never blocks its first paint on the API -
-   * upgrades in place once the client-side check resolves, instead of the
-   * server component awaiting `/v1/auth/me` before rendering anything.
-   */
-  const [isSignedIn, setIsSignedIn] = useState(false);
-  const walletHref = isSignedIn ? "/dashboard" : "/login";
   const [menuOpen, setMenuOpen] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .get("/v1/auth/me")
-      .then(() => {
-        if (!cancelled) setIsSignedIn(true);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -58,8 +43,8 @@ export default function Header() {
         <span className="hero-masthead-cta-sep" aria-hidden="true">
           /
         </span>
-        <Link href={walletHref} className="hero-masthead-cta-link pc-label">
-          Create Agent Wallet
+        <Link href="/dashboard" className="hero-masthead-cta-link pc-label">
+          Dashboard
         </Link>
       </div>
 
@@ -82,11 +67,11 @@ export default function Header() {
         <nav id="masthead-drop-nav" className="hero-masthead-drop pc-label" aria-label="Menu">
           {}
           <a
-            href={walletHref}
+            href="/dashboard"
             className="hero-masthead-drop-mobile-only"
             onClick={() => setMenuOpen(false)}
           >
-            <span>Create Agent Wallet</span>
+            <span>Dashboard</span>
             <span aria-hidden="true">↗</span>
           </a>
           {MENU_LINKS.map((item) => (

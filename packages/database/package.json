@@ -4,6 +4,7 @@
   "type": "module",
   "exports": "./src/index.ts",
   "scripts": {
+    "postinstall": "prisma generate",
     "generate": "prisma generate",
     "migrate": "prisma migrate deploy",
     "migrate:dev": "prisma migrate dev",

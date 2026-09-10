@@ -19,7 +19,7 @@ const COLS: [string, [string, string][]][] = [
       ["Docs", "/docs"],
       ["MCP", "#surfaces"],
       ["SDK", "#surfaces"],
-      ["GitHub", "https://github.com/0xVida/paycop-init"],
+      ["GitHub", "https://github.com/paymoderator"],
     ],
   ],
   [
