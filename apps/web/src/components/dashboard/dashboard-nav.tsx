@@ -15,13 +15,22 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Overview", number: "01" },
   { href: "/dashboard/wallets", label: "Agent Wallets", number: "02" },
   { href: "/dashboard/policies", label: "Policies", number: "03" },
-  { href: "/dashboard/activity", label: "Activity", number: "04" },
-  { href: "/dashboard/settings", label: "Settings", number: "05" },
+  { href: "/dashboard/code/balance", label: "Paymod Code", number: "04" },
+  { href: "/dashboard/activity", label: "Activity", number: "05" },
+  { href: "/dashboard/settings", label: "Settings", number: "06" },
 ] as const;
 
-const ADMIN_NAV_ITEM = { href: "/dashboard/admin", label: "Admin", number: "06" } as const;
+const ADMIN_NAV_ITEM = { href: "/dashboard/admin", label: "Admin", number: "07" } as const;
 
-function NavLinks({ pathname, isAdmin, onNavigate }: { pathname: string; isAdmin: boolean; onNavigate?: () => void }) {
+function NavLinks({
+  pathname,
+  isAdmin,
+  onNavigate,
+}: {
+  pathname: string;
+  isAdmin: boolean;
+  onNavigate?: () => void;
+}) {
   const items = isAdmin ? [...NAV_ITEMS, ADMIN_NAV_ITEM] : NAV_ITEMS;
   return (
     <nav className="dashboard-nav flex flex-1 flex-col">
@@ -100,7 +109,11 @@ export function DashboardNav({ me }: { me: MeResponse }) {
           >
             <SheetTitle className="sr-only">Navigation</SheetTitle>
             <AccountHeader me={me} />
-            <NavLinks pathname={pathname} isAdmin={me.isAdmin} onNavigate={() => setMobileOpen(false)} />
+            <NavLinks
+              pathname={pathname}
+              isAdmin={me.isAdmin}
+              onNavigate={() => setMobileOpen(false)}
+            />
             <AccountFooter me={me} onLogout={handleLogout} />
           </SheetContent>
         </Sheet>
