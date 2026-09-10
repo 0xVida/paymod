@@ -75,7 +75,7 @@ test("HTTP MCP requires a wallet credential and keeps it bound to its session", 
     });
     assert.equal(listed.status, 200);
     const tools = (await readMcpResponse(listed)) as { result: { tools: Array<{ name: string }> } };
-    assert.equal(tools.result.tools.length, 5);
+    assert.equal(tools.result.tools.length, 7);
 
     const mismatchedCredential = await fetch(`${server.baseUrl}/mcp`, {
       method: "POST",

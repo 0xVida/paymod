@@ -82,8 +82,12 @@ function registerGetBudgetTool(server: McpServer, client: PaymodClient): void {
 }
 
 const transferInputShape = {
-  amount: atomicAmountSchema.describe("Atomic integer string, e.g. \"1000000\" for 0.1 USDC (7 decimals)."),
-  destination: z.string().min(1).describe("Recipient Stellar account address (G...)."),
+  amount: atomicAmountSchema.describe(
+    "Atomic integer string in the spending wallet's own decimals: 6 decimals on Circle's EVM rail (the current default), 7 on the dormant Stellar rail. \"1000000\" is 1 USDC on Circle, 0.1 USDC on Stellar.",
+  ),
+  destination: z.string().min(1).describe(
+    "Recipient address in the format the spending wallet's rail expects: a 0x... address on Circle's EVM rail, a G... account on Stellar.",
+  ),
   purpose: z.string().optional().describe("Human-readable reason for the payment, for the audit log."),
 };
 
