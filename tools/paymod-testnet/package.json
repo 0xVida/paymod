@@ -1,0 +1,10 @@
+{
+  "name": "@paymod/testnet-cli",
+  "private": true,
+  "type": "module",
+  "bin": { "paymod-testnet": "./paymod-testnet.mjs" },
+  "scripts": { "cli": "node ./paymod-testnet.mjs" },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^14.0.0"
+  }
+}

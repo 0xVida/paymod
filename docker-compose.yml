@@ -1,0 +1,35 @@
+name: paymod
+
+services:
+  postgres:
+    # Pinned to 16 deliberately: the budget_periods unique index uses
+    # NULLS NOT DISTINCT, which requires PostgreSQL 15 or newer. On an older
+    # server every account-wide budget row (spender_id IS NULL) is treated as
+    # unique and you silently get duplicate budgets, each with its own limit.
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: paymod
+      POSTGRES_PASSWORD: paymod
+      POSTGRES_DB: paymod
+    ports:
+      - "5432:5432"
+    volumes:
+      - paymod-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paymod -d paymod"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  paymod-pgdata:

@@ -1,0 +1,260 @@
+@import "tailwindcss" source(none);
+@source "..";
+@import "tw-animate-css";
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@theme inline {
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-paper: var(--paper);
+  --color-paper-foreground: var(--paper-foreground);
+  --color-hairline: var(--hairline);
+  --color-signal: var(--signal);
+}
+
+:root {
+  --radius: 0.125rem;
+
+  --background: oklch(0.955 0.004 95);
+  --foreground: oklch(0.16 0.002 250);
+  --card: oklch(0.99 0.003 95);
+  --card-foreground: oklch(0.16 0.002 250);
+  --popover: oklch(0.99 0.003 95);
+  --popover-foreground: oklch(0.16 0.002 250);
+  --primary: oklch(0.16 0.002 250);
+  --primary-foreground: oklch(0.99 0.003 95);
+  --secondary: oklch(0.91 0.004 95);
+  --secondary-foreground: oklch(0.16 0.002 250);
+  --muted: oklch(0.93 0.004 95);
+  --muted-foreground: oklch(0.46 0.01 250);
+  --accent: oklch(0.9 0.01 75);
+  --accent-foreground: oklch(0.16 0.002 250);
+  --destructive: oklch(0.62 0.02 30);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.16 0.002 250 / 14%);
+  --input: oklch(0.16 0.002 250 / 18%);
+  --ring: oklch(0.36 0.03 250);
+
+  --paper: oklch(0.955 0.004 95);
+  --paper-foreground: oklch(0.16 0.002 250);
+  --hairline: oklch(1 0 0 / 14%);
+  --signal: oklch(1 0 0);
+
+  --chart-1: oklch(0.98 0 0);
+  --chart-2: oklch(0.78 0 0);
+  --chart-3: oklch(0.58 0 0);
+  --chart-4: oklch(0.4 0 0);
+  --chart-5: oklch(0.28 0 0);
+  --sidebar: oklch(0.98 0.003 95);
+  --sidebar-foreground: oklch(0.16 0.002 250);
+  --sidebar-primary: oklch(0.16 0.002 250);
+  --sidebar-primary-foreground: oklch(0.99 0.003 95);
+  --sidebar-accent: oklch(0.91 0.004 95);
+  --sidebar-accent-foreground: oklch(0.16 0.002 250);
+  --sidebar-border: oklch(0.16 0.002 250 / 14%);
+  --sidebar-ring: oklch(0.36 0.03 250);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: var(--signal);
+    color: var(--paper-foreground);
+  }
+}
+
+@utility grid-rule {
+  background-image:
+    linear-gradient(to right, var(--hairline) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--hairline) 1px, transparent 1px);
+  background-size: 88px 88px;
+}
+
+@utility grid-rule-ink {
+  background-image:
+    linear-gradient(to right, oklch(0 0 0 / 8%) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0 0 0 / 8%) 1px, transparent 1px);
+  background-size: 88px 88px;
+}
+
+@utility fade-mask {
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 100%);
+}
+
+@utility label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+@utility hair-t {
+  border-top: 1px solid var(--hairline);
+}
+
+@utility hair-b {
+  border-bottom: 1px solid var(--hairline);
+}
+
+@utility hair-l {
+  border-left: 1px solid var(--hairline);
+}
+
+@utility hair-r {
+  border-right: 1px solid var(--hairline);
+}
+
+@utility text-balance-tight {
+  text-wrap: balance;
+}
+
+@keyframes marquee-x {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes sweep {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(400%);
+  }
+}
+
+.marquee-track {
+  animation: marquee-x 38s linear infinite;
+}
+.marquee-track-slow {
+  animation: marquee-x 70s linear infinite;
+}
+.marquee-reverse {
+  animation-direction: reverse;
+}
+
+.reveal {
+  opacity: 0;
+}
+.reveal.is-in {
+  animation: rise-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.caret::after {
+  content: "";
+  display: inline-block;
+  width: 0.5ch;
+  height: 1em;
+  margin-left: 0.15em;
+  background: currentColor;
+  vertical-align: -0.15em;
+  animation: blink 1.1s steps(1) infinite;
+}
+
+.scanline::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: 30%;
+  background: linear-gradient(to bottom, transparent, oklch(1 0 0 / 5%), transparent);
+  animation: sweep 6s linear infinite;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track,
+  .marquee-track-slow,
+  .reveal.is-in,
+  .caret::after,
+  .scanline::before {
+    animation: none;
+  }
+  .reveal {
+    opacity: 1;
+  }
+}

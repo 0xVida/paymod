@@ -1,0 +1,505 @@
+.shell {
+  min-height: 100vh;
+  color-scheme: light;
+  color: var(--ink-soft);
+  background: var(--bg);
+  font-family: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1px solid var(--line-16);
+  min-height: 76px;
+  background: var(--bg);
+}
+
+.wordmark,
+.docsLabel {
+  font-family: var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.wordmark {
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.45rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  text-transform: none;
+  color: var(--ink);
+}
+.docsLabel {
+  font-size: 0.62rem;
+  color: var(--ink-muted);
+}
+.headerLink {
+  color: var(--ink-muted);
+  transition: color 160ms ease;
+}
+.headerLink:hover {
+  color: var(--ink);
+}
+.sidebar {
+  border-right: 1px solid var(--line-16);
+  padding-right: 1.75rem;
+}
+.content {
+  padding-bottom: 5rem;
+}
+.content :global(.bg-muted) {
+  background: var(--surface);
+}
+.content :global(.border) {
+  border-color: var(--line-16);
+}
+
+.shell :global(.docs-nav) {
+  display: grid;
+  gap: 0.35rem;
+}
+.shell :global(.docs-nav-group) {
+  border-bottom: 1px solid var(--line-10);
+}
+.shell :global(.docs-nav-trigger) {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.8rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-align: left;
+  text-transform: uppercase;
+}
+.shell :global(.docs-nav-trigger:hover) {
+  color: var(--ink);
+}
+.shell :global(.docs-nav-chevron) {
+  width: 0.85rem;
+  transition: transform 150ms ease;
+}
+.shell :global(.docs-nav-chevron-open) {
+  transform: rotate(90deg);
+}
+.shell :global(.docs-nav-items) {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0 0 0.8rem 0;
+}
+.shell :global(.docs-nav-link) {
+  border-left: 2px solid transparent;
+  color: var(--ink-muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  padding: 0.3rem 0 0.3rem 0.8rem;
+  text-decoration: none;
+}
+.shell :global(.docs-nav-link:hover) {
+  color: var(--rust);
+}
+.shell :global(.docs-nav-link-active) {
+  border-left-color: var(--rust);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.shell :global(.docs-article) {
+  max-width: 760px;
+  padding: 0.2rem 0 3rem;
+}
+.shell :global(.docs-back) {
+  color: var(--ink-muted);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.shell :global(.docs-back:hover) {
+  color: var(--rust);
+}
+.shell :global(.docs-page-header) {
+  margin-top: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--line-16);
+}
+.shell :global(.docs-page-header h1) {
+  margin: 0.8rem 0 0;
+  color: var(--ink);
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(2.4rem, 5vw, 4.4rem);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  line-height: 0.98;
+}
+.shell :global(.docs-page-header p) {
+  max-width: 600px;
+  margin: 1rem 0 0;
+  color: var(--ink-muted);
+  font-size: 1.12rem;
+  line-height: 1.6;
+}
+.shell :global(.docs-status) {
+  display: inline-flex;
+  border: 1px solid var(--rust);
+  color: var(--rust-deep);
+  padding: 0.3rem 0.55rem;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.shell :global(.docs-prose) {
+  display: grid;
+  gap: 1.15rem;
+  margin-top: 2rem;
+}
+.shell :global(.docs-prose p) {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 1rem;
+  line-height: 1.8;
+}
+.shell :global(.docs-prose p:first-child) {
+  color: var(--ink);
+  font-size: 1.08rem;
+}
+.shell :global(.docs-diagram) {
+  overflow-x: auto;
+  margin-top: 2rem;
+  border: 1px solid var(--line-16);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 1.5rem;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+.shell :global(.docs-list-section) {
+  margin-top: 2.4rem;
+  border-top: 1px solid var(--line-16);
+  padding-top: 1.8rem;
+}
+.shell :global(.docs-list-section h2) {
+  margin: 0 0 1rem;
+  color: var(--ink);
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.55rem;
+  letter-spacing: -0.03em;
+}
+.shell :global(.docs-list-section ol) {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: docs-step;
+}
+.shell :global(.docs-list-section li) {
+  position: relative;
+  border-top: 1px solid var(--line-10);
+  color: var(--ink-muted);
+  counter-increment: docs-step;
+  padding: 0.85rem 0 0.85rem 2.8rem;
+  line-height: 1.55;
+}
+.shell :global(.docs-list-section li::before) {
+  position: absolute;
+  left: 0;
+  color: var(--rust);
+  content: counter(docs-step, decimal-leading-zero);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.7rem;
+}
+.shell :global(.docs-pagination) {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 3.5rem;
+  border-top: 1px solid var(--line-16);
+  padding-top: 1.5rem;
+}
+.shell :global(.docs-pagination div:last-child) {
+  text-align: right;
+}
+.shell :global(.docs-pagination a) {
+  color: var(--ink);
+  font-size: 0.88rem;
+  text-decoration: none;
+}
+.shell :global(.docs-pagination a:hover) {
+  color: var(--rust);
+}
+.shell :global(.docs-pagination span) {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--ink-muted);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.shell :global(.docs-home) {
+  padding: 0.2rem 0 5rem;
+}
+.shell :global(.docs-home-hero) {
+  max-width: 880px;
+  padding: 0.5rem 0 3rem;
+}
+.shell :global(.docs-home-kicker),
+.shell :global(.docs-section-heading p),
+.shell :global(.docs-current-copy > p) {
+  margin: 0;
+  color: var(--rust-deep);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.shell :global(.docs-home-hero h1) {
+  max-width: 820px;
+  margin: 1rem 0 0;
+  color: var(--ink);
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(3rem, 6vw, 5.7rem);
+  font-weight: 600;
+  letter-spacing: -0.065em;
+  line-height: 0.92;
+}
+.shell :global(.docs-home-lede) {
+  max-width: 690px;
+  margin: 1.4rem 0 0;
+  color: var(--ink-muted);
+  font-size: 1.16rem;
+  line-height: 1.65;
+}
+.shell :global(.docs-model) {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--line-20);
+  background: transparent;
+  color: var(--ink);
+}
+.shell :global(.docs-model-step) {
+  position: relative;
+  display: flex;
+  min-height: 150px;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.2rem;
+  border-right: 1px solid var(--line-16);
+}
+.shell :global(.docs-model-step:last-child) {
+  border-right: 0;
+}
+.shell :global(.docs-model-step > span) {
+  position: absolute;
+  top: 1rem;
+  color: var(--rust-light);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.65rem;
+}
+.shell :global(.docs-model-step strong) {
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+.shell :global(.docs-model-step small) {
+  margin-top: 0.25rem;
+  color: var(--ink-muted);
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+.shell :global(.docs-model-step i) {
+  position: absolute;
+  right: -0.55rem;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  width: 1.1rem;
+  height: 1.1rem;
+  place-items: center;
+  background: transparent;
+  color: var(--rust);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.65rem;
+  font-style: normal;
+}
+.shell :global(.docs-entry-grid) {
+  margin-top: 4.5rem;
+}
+.shell :global(.docs-section-heading) {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  border-bottom: 1px solid var(--line-20);
+  padding-bottom: 1.25rem;
+}
+.shell :global(.docs-section-heading h2),
+.shell :global(.docs-current-copy h2) {
+  max-width: 580px;
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+.shell :global(.docs-entry-cards) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.shell :global(.docs-entry-card) {
+  min-height: 300px;
+  border-right: 1px solid var(--line-20);
+  border-bottom: 1px solid var(--line-20);
+  padding: 1.6rem;
+}
+.shell :global(.docs-entry-card:nth-child(odd)) {
+  border-left: 1px solid var(--line-20);
+}
+.shell :global(.docs-entry-number) {
+  color: var(--rust);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.66rem;
+}
+.shell :global(.docs-entry-card h3) {
+  margin: 2rem 0 0;
+  color: var(--ink);
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.shell :global(.docs-entry-card > p) {
+  min-height: 3rem;
+  margin: 0.5rem 0 1.4rem;
+  color: var(--ink-muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+.shell :global(.docs-entry-card > div) {
+  display: grid;
+}
+.shell :global(.docs-entry-card a) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--line-10);
+  color: var(--ink);
+  padding: 0.65rem 0;
+  font-size: 0.84rem;
+  text-decoration: none;
+}
+.shell :global(.docs-entry-card a:hover) {
+  color: var(--rust-deep);
+}
+.shell :global(.docs-current) {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 4rem;
+  margin-top: 5rem;
+  border-top: 1px solid var(--line-20);
+  padding-top: 3rem;
+}
+.shell :global(.docs-current-copy h2) {
+  margin-top: 1rem;
+}
+.shell :global(.docs-current-copy a) {
+  display: inline-block;
+  margin-top: 1.5rem;
+  color: var(--rust-deep);
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+.shell :global(.docs-current-list > div) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--line-16);
+  padding: 0.9rem 0;
+  color: var(--ink);
+  font-size: 0.86rem;
+}
+.shell :global(.docs-current-list strong) {
+  color: var(--ink-muted);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.shell :global(.docs-current-list strong[data-status="live"]) {
+  color: var(--sage);
+}
+.shell :global(.docs-current-list strong[data-status="partial"]) {
+  color: var(--amber);
+}
+.shell :global(.docs-current-list strong[data-status="planned"]) {
+  color: var(--ink-muted);
+}
+.shell :global(.docs-home-footer) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4.5rem;
+  border-top: 1px solid var(--line-20);
+  padding-top: 1.4rem;
+}
+.shell :global(.docs-home-footer p) {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+}
+.shell :global(.docs-home-footer div) {
+  display: flex;
+  gap: 1.4rem;
+}
+.shell :global(.docs-home-footer a) {
+  color: var(--ink);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.shell :global(.docs-home-footer a:hover) {
+  color: var(--rust-deep);
+}
+
+@media (max-width: 760px) {
+  .shell :global(.docs-model) {
+    grid-template-columns: 1fr 1fr;
+  }
+  .shell :global(.docs-model-step:nth-child(2)) {
+    border-right: 0;
+  }
+  .shell :global(.docs-model-step) {
+    border-bottom: 1px solid var(--line-16);
+  }
+  .shell :global(.docs-model-step i) {
+    display: none;
+  }
+  .shell :global(.docs-entry-cards),
+  .shell :global(.docs-current) {
+    grid-template-columns: 1fr;
+  }
+  .shell :global(.docs-current) {
+    gap: 2rem;
+  }
+  .shell :global(.docs-section-heading),
+  .shell :global(.docs-home-footer) {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

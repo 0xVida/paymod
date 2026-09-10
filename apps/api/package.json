@@ -1,0 +1,41 @@
+{
+  "name": "@paymod/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "npm run build && tsx --env-file-if-exists=.env dist/main.js",
+    "start": "npm run build && tsx --env-file-if-exists=.env dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "pretest": "npm run build",
+    "test": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.test --test --test-concurrency=1 src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/platform-express": "^11.0.1",
+    "@paymod/circle": "file:../../packages/circle",
+    "@paymod/database": "file:../../packages/database",
+    "@paymod/payments": "file:../../packages/payments",
+    "@paymod/policy-engine": "file:../../packages/policy-engine",
+    "@paymod/shared": "file:../../packages/shared",
+    "@paymod/stellar": "file:../../packages/stellar",
+    "@paymod/x402": "file:../../packages/x402",
+    "@solana/spl-token": "^0.4.15",
+    "@solana/web3.js": "^1.98.4",
+    "@stellar/stellar-sdk": "^14.0.0",
+    "@types/cookie-parser": "^1.4.10",
+    "bullmq": "^5.34.2",
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@circle-fin/developer-controlled-wallets": "^10.8.0",
+    "@types/express": "^5.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.8.3"
+  }
+}

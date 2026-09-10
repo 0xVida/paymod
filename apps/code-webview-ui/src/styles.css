@@ -1,0 +1,697 @@
+html, body, #root { height: 100%; }
+:root { --paymod-accent: #b95115; }
+body {
+  font-family: var(--vscode-font-family);
+  color: var(--vscode-foreground);
+  background-color: var(--vscode-sideBar-background);
+  padding: 0;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+#root { display: flex; flex-direction: column; overflow: hidden; }
+
+.row { display: flex; align-items: center; gap: 6px; }
+.muted { color: var(--vscode-descriptionForeground); }
+/* Paymod's brand accent, not `--vscode-button-background` (blue in most
+   popular VS Code themes) and not a plain theme-foreground/background
+   inversion - primary actions read as Paymod's own color in every theme. */
+button {
+  background-color: var(--paymod-accent);
+  color: #fff;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 12px;
+}
+button:hover { opacity: 0.85; }
+button.secondary {
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+button.secondary:hover { background-color: var(--vscode-button-secondaryHoverBackground); opacity: 1; }
+select {
+  background-color: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+  border: 1px solid var(--vscode-dropdown-border);
+  font-size: 12px;
+  padding: 2px 4px;
+}
+/* Without this, a clicked/focused <select> falls back to the browser's own
+   default focus ring instead of a themed outline like every other control. */
+select:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.composer {
+  flex: 0 0 auto;
+  padding: 10px;
+  border-top: 1px solid var(--vscode-panel-border);
+}
+/* The context/slash menu still anchors above the input specifically, not
+   the whole composer - so it tracks the textarea even as the toolbar below
+   gains or loses content. */
+.composer-textarea-wrap {
+  position: relative;
+}
+.composer textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: none;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.composer textarea:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+/* A normal toolbar button now, not floating over the input - sits at the
+   end of the bottom row next to the balance. */
+.composer-send-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: var(--paymod-accent);
+  color: #fff;
+  cursor: pointer;
+}
+.composer-send-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+.composer-send-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.composer-send-btn .codicon {
+  font-size: 13px;
+}
+/* While a turn is running, the button is a plain solid circle - no icon
+   glyph on top of it, so it never reads as a shape inside a shape. */
+.composer-send-btn-running {
+  border-radius: 50%;
+}
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  padding: 0;
+}
+.icon-btn:hover { background: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground)); color: var(--vscode-foreground); }
+.icon-btn .codicon { font-size: 14px; }
+
+/* One row below the input: context/attach/MCP/rules icons and the model
+   picker on the left, mode toggle and balance on the right - sign-out
+   lives in the sidebar instead, not here. */
+.composer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+.context-menu {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 100%;
+  margin-bottom: 4px;
+  max-height: 220px;
+  display: flex;
+  flex-direction: column;
+  background: var(--vscode-editorWidget-background, var(--vscode-input-background));
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+.context-menu-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 6px 6px 0;
+  flex-shrink: 0;
+}
+.context-menu-tab {
+  background: none;
+  color: var(--vscode-descriptionForeground);
+  border: none;
+  border-radius: 4px 4px 0 0;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.context-menu-tab:hover { color: var(--vscode-foreground); }
+.context-menu-tab.active {
+  color: var(--vscode-foreground);
+  background: var(--vscode-list-hoverBackground);
+  font-weight: 600;
+}
+.context-menu-items { overflow-y: auto; padding: 4px; }
+.context-menu-empty { padding: 10px; color: var(--vscode-descriptionForeground); font-size: 12px; }
+.mention-item {
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mention-item-active, .mention-item:hover { background: var(--vscode-list-hoverBackground); }
+.slash-item { display: flex; align-items: baseline; gap: 8px; font-family: inherit; white-space: normal; }
+.slash-item-name { font-family: var(--vscode-editor-font-family, monospace); font-weight: 600; flex-shrink: 0; }
+.slash-item-desc { color: var(--vscode-descriptionForeground); font-size: 11px; }
+
+/* MCP servers / rules popovers - a small backdrop closes on outside click,
+   the popover itself anchored just above the icon that opened it. */
+.toolbar-popover-anchor { position: relative; }
+.toolbar-popover-backdrop { position: fixed; inset: 0; z-index: 40; }
+.toolbar-popover {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  z-index: 41;
+  min-width: 200px;
+  max-width: 280px;
+  background: var(--vscode-editorWidget-background, var(--vscode-input-background));
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  padding: 8px;
+}
+.toolbar-popover-title { font-weight: 600; font-size: 12px; margin-bottom: 4px; }
+.toolbar-popover-note { color: var(--vscode-descriptionForeground); font-size: 11px; margin-bottom: 6px; }
+.toolbar-popover-empty { color: var(--vscode-descriptionForeground); font-size: 12px; }
+.toolbar-popover-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px;
+  font-size: 12px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A popover hanging from the right edge of its own anchor instead of the
+   left - for toolbar buttons near the composer's right edge (mode, and
+   anything else on that side), where a left-anchored popover would run
+   off the panel. */
+.toolbar-popover-right { left: auto; right: 0; }
+.toolbar-popover-row-clickable { border-radius: 4px; padding: 6px; }
+.toolbar-popover-row-clickable:hover { background: var(--vscode-list-hoverBackground); }
+.toolbar-popover-row-clickable.active { font-weight: 600; }
+.toolbar-popover-check { font-size: 13px; flex-shrink: 0; }
+.toolbar-popover-check.hidden { visibility: hidden; }
+.toolbar-popover-row-desc { color: var(--vscode-descriptionForeground); font-size: 11px; font-weight: 400; }
+
+/* Model and mode buttons show their current value as text, not just an
+   icon, so they read like the native `<select>`/switch they replaced. */
+.model-menu-btn {
+  width: auto;
+  gap: 4px;
+  padding: 0 6px;
+  font-size: 12px;
+}
+.model-menu-btn .codicon { font-size: 12px; }
+/* Marks a model whose provider is running on the user's own key instead of
+   Paymod's proxy/balance - both on the button itself (the current model)
+   and next to each matching row in the picker. */
+.model-menu-byok-badge {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: var(--paymod-accent);
+  color: #fff;
+}
+
+/* A small count badge on the auto-approve icon when at least one tool is
+   auto-approved, so that state is visible without opening the popover. */
+.icon-btn { position: relative; }
+.icon-btn-badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 12px;
+  height: 12px;
+  padding: 0 2px;
+  border-radius: 6px;
+  background: var(--paymod-accent);
+  color: #fff;
+  font-size: 8px;
+  line-height: 12px;
+  text-align: center;
+}
+
+/* Sits above the scrollable message list, not inside it - stays visible
+   while the transcript scrolls, like the input toolbar below. Hidden
+   entirely (see TaskHeader.tsx) until the first real usage figure exists. */
+.task-header {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  padding: 6px 14px;
+}
+.task-header-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--vscode-foreground);
+  padding: 2px 0;
+  font-size: 11px;
+  cursor: pointer;
+}
+.task-header-summary .codicon { font-size: 13px; color: var(--vscode-descriptionForeground); flex-shrink: 0; }
+.task-header-tokens { flex-shrink: 0; }
+.task-header-bar {
+  flex: 1 1 auto;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--vscode-panel-border);
+  overflow: hidden;
+}
+.task-header-bar-fill { height: 100%; background: var(--vscode-foreground); }
+.task-header-bar-fill-warning { background: var(--vscode-editorWarning-foreground); }
+.task-header-warning { color: var(--vscode-editorWarning-foreground); }
+.task-header-details { display: flex; flex-direction: column; gap: 2px; padding: 6px 0 2px 19px; font-size: 11px; }
+.task-header-row { display: flex; justify-content: space-between; gap: 12px; }
+
+.body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 18px; }
+.empty { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; color: var(--vscode-descriptionForeground); padding: 16px 10px; text-align: center; }
+
+.entry {
+  margin-top: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  max-width: 88%;
+}
+.turn-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+/* Full width rather than a narrow right-aligned bubble - not a two-sided
+   chat layout. */
+.entry-user-row {
+  align-self: stretch;
+}
+.entry-user {
+  width: calc(100% - 16px);
+  margin-left: 16px;
+  box-sizing: border-box;
+  max-width: none;
+  /* Plain text, not markdown - a line break the user typed (Shift+Enter)
+     must render as one, which HTML's default whitespace collapsing would
+     otherwise eat. */
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--vscode-list-hoverBackground, var(--vscode-input-background));
+  color: var(--vscode-foreground);
+  border: 1px solid var(--vscode-panel-border);
+}
+/* Groups everything from one user message to the next behind a single
+   connecting line, so a response's tool calls and text read as one
+   continuous thread rather than unrelated rows. */
+.turn {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-left: 2px solid var(--vscode-panel-border);
+  margin-left: 3px;
+  padding-left: 13px;
+}
+/* The assistant's own turn is plain flowing text, not a bubble: no
+   background, no border, no padding, full width - matching Claude
+   Code's own transcript, which never boxes or labels its own replies. */
+.entry-assistant {
+  align-self: stretch;
+  max-width: none;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+}
+.options-buttons { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; align-items: flex-start; }
+.options-button {
+  background: var(--vscode-editorWidget-background, var(--vscode-input-background));
+  color: var(--vscode-foreground);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.options-button:hover { background: var(--vscode-list-hoverBackground); border-color: var(--vscode-focusBorder); }
+
+.mermaid-diagram { margin: 6px 0; overflow-x: auto; }
+.mermaid-diagram svg { max-width: 100%; }
+.mermaid-loading { color: var(--vscode-descriptionForeground); font-size: 12px; padding: 6px 0; }
+.mermaid-error {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+  background: var(--vscode-textCodeBlock-background);
+  border: 1px solid var(--vscode-errorForeground);
+  border-radius: 4px;
+  padding: 8px 10px;
+  overflow-x: auto;
+}
+.entry-tool {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+.tool-icon {
+  font-size: 8px;
+  color: var(--vscode-foreground);
+  flex-shrink: 0;
+}
+/* Reads as plain text, not a button - the underline-on-hover is the only
+   tell that a file reference in the activity feed is clickable. */
+.tool-file-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.tool-file-link:hover { text-decoration: underline; }
+/* Small dot on the turn's connector line for each step - green marks a
+   read or edit (the steps that actually touch files), neutral covers
+   everything else (thinking, plain narration, other tool calls). */
+.turn > .entry-tool,
+.turn > .entry-assistant,
+.turn > .thinking {
+  position: relative;
+}
+.turn > .entry-tool::before,
+.turn > .entry-assistant::before,
+.turn > .thinking::before {
+  content: "";
+  position: absolute;
+  left: -19.5px;
+  top: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--vscode-descriptionForeground);
+  border: 2px solid var(--vscode-sideBar-background);
+}
+.turn > .entry-tool.step-marker-active::before {
+  background: var(--vscode-charts-green, #3fb950);
+}
+.entry p { margin: 4px 0; }
+.entry h1, .entry h2, .entry h3, .entry h4, .entry h5, .entry h6 { margin: 10px 0 4px; }
+.entry ul, .entry ol { margin: 4px 0; padding-left: 22px; }
+.entry blockquote {
+  margin: 4px 0;
+  padding: 2px 10px;
+  border-left: 3px solid var(--vscode-textBlockQuote-border, var(--vscode-panel-border));
+  background: var(--vscode-textBlockQuote-background, transparent);
+}
+.entry code {
+  font-family: var(--vscode-editor-font-family, monospace);
+  background: var(--vscode-textCodeBlock-background);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.entry a { color: var(--vscode-textLink-foreground); }
+.code-block-wrap {
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 6px 0;
+}
+.code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 10px;
+  background: var(--vscode-editorWidget-background, var(--vscode-input-background));
+  border-bottom: 1px solid var(--vscode-panel-border);
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+.code-block-lang { text-transform: uppercase; letter-spacing: 0.04em; }
+.code-block-copy {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--vscode-descriptionForeground);
+  padding: 2px 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.code-block-copy:hover { color: var(--vscode-foreground); background: var(--vscode-list-hoverBackground); border-radius: 4px; }
+.code-block-copy .codicon { font-size: 12px; }
+.code-block-wrap pre {
+  font-family: var(--vscode-editor-font-family, monospace);
+  background: var(--vscode-textCodeBlock-background);
+  padding: 8px 10px;
+  overflow-x: auto;
+  margin: 0;
+  line-height: 1.5;
+}
+.code-block-wrap code { background: none; padding: 0; white-space: pre; }
+/* highlight.js's real token vocabulary is much richer than the 4-category
+   hand-rolled tokenizer this replaced - most tokens (function names,
+   params, types) had no rule at all before and just fell back to plain
+   foreground text, which is why highlighting looked mostly monochrome. */
+.hljs-comment, .hljs-quote { color: var(--vscode-charts-green, var(--vscode-descriptionForeground)); font-style: italic; }
+.hljs-string, .hljs-doctag, .hljs-regexp, .hljs-addition, .hljs-meta-string { color: var(--vscode-charts-orange, var(--vscode-terminal-ansiRed)); }
+.hljs-number, .hljs-literal { color: var(--vscode-charts-blue, var(--vscode-terminal-ansiBlue)); }
+.hljs-keyword, .hljs-selector-tag, .hljs-subst, .hljs-type, .hljs-built_in, .hljs-builtin-name, .hljs-meta, .hljs-meta-keyword {
+  color: var(--vscode-charts-purple, var(--vscode-terminal-ansiMagenta));
+}
+.hljs-title, .hljs-title.function_, .hljs-section, .hljs-class .hljs-title, .hljs-function .hljs-title {
+  color: var(--vscode-charts-yellow, var(--vscode-terminal-ansiYellow));
+}
+.hljs-tag, .hljs-name, .hljs-selector-id, .hljs-selector-class { color: var(--vscode-charts-blue, var(--vscode-terminal-ansiBlue)); }
+.hljs-attr, .hljs-attribute, .hljs-symbol, .hljs-bullet, .hljs-link { color: var(--vscode-charts-orange, var(--vscode-terminal-ansiCyan)); }
+.hljs-variable, .hljs-template-variable, .hljs-params { color: var(--vscode-foreground); }
+.hljs-deletion { color: var(--vscode-terminal-ansiRed); }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 700; }
+
+.thinking { display: flex; align-items: center; gap: 6px; color: var(--vscode-descriptionForeground); }
+.thinking-dots span {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin-right: 2px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: thinking-pulse 1.2s infinite ease-in-out;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes thinking-pulse { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+
+.diff-card {
+  align-self: stretch;
+  border: 1px solid var(--vscode-focusBorder, var(--vscode-panel-border));
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--vscode-editorWidget-background, var(--vscode-input-background));
+}
+.diff-card-summary { font-weight: 600; margin-bottom: 8px; }
+.diff-card-actions { display: flex; gap: 8px; margin-top: 8px; }
+.diff-card-resolved-summary { color: var(--vscode-descriptionForeground); font-style: italic; margin-bottom: 4px; }
+.diff-file-header-resolved { cursor: default; }
+.diff-file-header-resolved:hover { background: none; }
+.diff-file-open { margin-left: 4px; }
+
+/* A long message collapses to a fixed height with a fade and a toggle that
+   overlaps the box's own bottom-right corner, rather than a separate row
+   below it or pushing everything after it far down the transcript. */
+.collapsible { position: relative; }
+.collapsible.collapsed { max-height: 320px; overflow: hidden; }
+.collapsible.collapsed::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 48px;
+  /* Fades to this box's own background, not the page's - `.entry-user`
+     isn't the same color as the surrounding `.body`. */
+  background: linear-gradient(to bottom, transparent, var(--vscode-list-hoverBackground, var(--vscode-input-background)));
+  pointer-events: none;
+}
+.collapse-toggle {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 1;
+  background: var(--vscode-editorWidget-background, var(--vscode-input-background));
+  color: var(--vscode-foreground);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 3px;
+  padding: 2px 7px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.collapse-toggle:hover { background: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground)); }
+
+.diff-file + .diff-file { margin-top: 10px; }
+.diff-file-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 4px 2px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+  color: var(--vscode-foreground);
+}
+.diff-file-header:hover { background: var(--vscode-list-hoverBackground); }
+.diff-file-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  flex: 1 1 auto;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.diff-file-toggle { color: var(--vscode-descriptionForeground); flex-shrink: 0; width: 10px; }
+.diff-file-dir { color: var(--vscode-descriptionForeground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.diff-file-base { font-weight: 600; flex-shrink: 0; }
+.diff-file-stats { margin-left: auto; display: flex; gap: 6px; flex-shrink: 0; }
+.diff-stat-add { color: var(--vscode-charts-green, #89d185); }
+.diff-stat-remove { color: var(--vscode-charts-red, var(--vscode-terminal-ansiRed, #f14c4c)); }
+.diff-file-body {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.diff-line { padding: 1px 8px; white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
+.diff-line-add { background: var(--vscode-diffEditor-insertedTextBackground, rgba(80, 200, 120, 0.15)); color: var(--vscode-foreground); }
+.diff-line-remove { background: var(--vscode-diffEditor-removedTextBackground, rgba(220, 90, 90, 0.15)); color: var(--vscode-foreground); }
+.diff-line-sep { color: var(--vscode-descriptionForeground); text-align: center; padding: 2px 8px; }
+
+.tool-io {
+  margin-top: 4px;
+  margin-left: 13px;
+  background: var(--vscode-textCodeBlock-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.tool-io-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 2px;
+}
+.tool-io-label:not(:first-child) { margin-top: 8px; }
+.tool-io-line {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+}
+.tool-io-out { color: var(--vscode-descriptionForeground); }
+.tool-output-block { position: relative; margin-top: 2px; }
+.tool-output-code {
+  margin: 0;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+  color: var(--vscode-descriptionForeground);
+}
+/* Sits inside the output box's own bottom-right corner, overlapping the
+   content rather than taking a separate row below it - a background pill
+   keeps it legible over whatever text happens to be underneath. */
+.tool-output-toggle {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  background: var(--vscode-textCodeBlock-background);
+  color: var(--vscode-textLink-foreground);
+  border: none;
+  border-radius: 3px;
+  padding: 2px 5px;
+  margin: 0;
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0.92;
+}
+.tool-output-toggle:hover { text-decoration: underline; }
+
+.turn-complete {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--vscode-charts-green, #89d185);
+  font-size: 12px;
+}
+
+.turn-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--vscode-foreground);
+  background: var(--vscode-inputValidation-errorBackground, transparent);
+  border: 1px solid var(--vscode-inputValidation-errorBorder, var(--vscode-panel-border));
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-top: 4px;
+}
+.turn-error-icon {
+  color: var(--vscode-errorForeground);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.turn-error-text { white-space: pre-wrap; word-break: break-word; }

@@ -1,0 +1,393 @@
+html.light {
+  --background: var(--bg);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--rust);
+  --primary-foreground: var(--panel-ink);
+  --secondary: var(--bg-board);
+  --secondary-foreground: var(--ink);
+  --muted: var(--bg-board);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--bg-board);
+  --accent-foreground: var(--ink);
+  --destructive: oklch(55% 0.17 28);
+  --destructive-foreground: var(--panel-ink);
+  --border: var(--line-20);
+  --input: var(--line-25);
+  --ring: var(--rust);
+}
+
+.paymod-app {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+.paymod-app h1,
+.paymod-app h2,
+.paymod-app h3,
+.paymod-app [data-ui="card-title"] {
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+}
+
+.dashboard-shell {
+  background: var(--bg);
+}
+.dashboard-main {
+  padding: 2rem clamp(1.25rem, 4vw, 4.5rem) 5rem;
+}
+.dashboard-page {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+.dashboard-sidebar {
+  border-right: 1px solid var(--line-20);
+  background: var(--surface);
+}
+.dashboard-account {
+  border-bottom: 1px solid var(--line-20);
+  padding: 1.5rem;
+}
+.dashboard-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.dashboard-brand > span:last-child {
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+.dashboard-account-name {
+  overflow: hidden;
+  margin-top: 1rem;
+  color: var(--ink-muted);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.63rem;
+  letter-spacing: 0.09em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.dashboard-nav {
+  padding: 0.75rem 0;
+}
+.dashboard-nav-link {
+  display: grid;
+  grid-template-columns: 2.25rem 1fr;
+  align-items: center;
+  min-height: 3.25rem;
+  border-left: 2px solid transparent;
+  border-bottom: 1px solid var(--line-12);
+  padding: 0 1.5rem 0 1.35rem;
+  color: var(--ink-muted);
+  font-size: 0.88rem;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+}
+.dashboard-nav-link:hover {
+  background: var(--bg-board);
+  color: var(--ink);
+}
+.dashboard-nav-link-active {
+  border-left-color: var(--rust);
+  background: var(--bg-board);
+  color: var(--ink);
+}
+.dashboard-nav-number {
+  color: var(--rust-deep);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+}
+.dashboard-footer {
+  border-top: 1px solid var(--line-20);
+  padding: 1rem 1.5rem 1.5rem;
+}
+.dashboard-email {
+  overflow: hidden;
+  margin-bottom: 0.4rem;
+  color: var(--ink-muted);
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dashboard-mobile-header {
+  border-bottom: 1px solid var(--line-20);
+  background: var(--surface);
+}
+.dashboard-heading {
+  border-bottom: 1px solid var(--line-20);
+  padding-bottom: 1.5rem;
+}
+.dashboard-heading h1 {
+  color: var(--ink);
+  font-size: clamp(2.25rem, 4vw, 3.8rem);
+  font-weight: 600;
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+}
+.dashboard-heading p {
+  max-width: 700px;
+  margin-top: 0.7rem;
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+.dashboard-eyebrow {
+  color: var(--rust-deep);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.paymod-app [data-ui="card"] {
+  border-radius: 0;
+  border-color: var(--line-20);
+  background: var(--surface);
+  box-shadow: none;
+}
+.paymod-app [data-ui="card-title"] {
+  color: var(--ink);
+  letter-spacing: -0.025em;
+}
+.paymod-app [data-ui="card-description"] {
+  color: var(--ink-muted);
+  line-height: 1.55;
+}
+.paymod-app [data-ui="button"] {
+  border-radius: 0;
+  box-shadow: none;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.67rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.paymod-app [data-ui="input"] {
+  min-height: 2.65rem;
+  border-radius: 0;
+  background: var(--bg);
+  box-shadow: none;
+}
+.paymod-app [data-ui="badge"] {
+  border-radius: 0;
+  box-shadow: none;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.paymod-app table {
+  border: 1px solid var(--line-20);
+  background: var(--surface);
+}
+.paymod-app th {
+  height: 3rem;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.paymod-app td,
+.paymod-app th {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+.dashboard-stat-card [data-ui="card-title"] {
+  font-size: clamp(1.75rem, 3vw, 2.75rem);
+  line-height: 1;
+}
+.dashboard-balance-card {
+  border-top: 3px solid var(--rust) !important;
+}
+.dashboard-balance-card [data-ui="card-title"] {
+  font-size: clamp(2.25rem, 4vw, 3.7rem);
+  line-height: 0.95;
+}
+.dashboard-action-card {
+  border-top: 3px solid var(--rust) !important;
+}
+
+.auth-shell {
+  display: grid;
+  min-height: 100vh;
+  grid-template-columns: minmax(0, 1.05fr) minmax(440px, 0.95fr);
+}
+.auth-story {
+  position: relative;
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  border-right: 1px solid var(--line-20);
+  background: var(--deep);
+  color: var(--panel-ink);
+  padding: clamp(1.5rem, 4vw, 4rem);
+}
+.auth-story::after {
+  position: absolute;
+  right: -16%;
+  bottom: -18%;
+  width: 55%;
+  aspect-ratio: 1;
+  border: 1px solid var(--line-20);
+  border-radius: 50%;
+  content: "";
+}
+.auth-brand {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--panel-ink);
+  text-decoration: none;
+}
+.auth-brand .logo-pinned-dark .logo-dark {
+  filter: none;
+}
+.auth-brand span {
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.55rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+.auth-message {
+  position: relative;
+  z-index: 1;
+  max-width: 680px;
+}
+.auth-message > span {
+  color: var(--rust-light);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.auth-message h1 {
+  margin: 1.2rem 0 0;
+  font-size: clamp(3.7rem, 7vw, 7rem);
+  font-weight: 600;
+  letter-spacing: -0.07em;
+  line-height: 0.86;
+}
+.auth-message p {
+  max-width: 520px;
+  margin: 1.5rem 0 0;
+  color: color-mix(in oklab, var(--panel-ink) 62%, transparent);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+.auth-proof {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--line-16);
+  padding-top: 1.2rem;
+}
+.auth-proof div {
+  border-right: 1px solid var(--line-16);
+  padding-right: 1rem;
+}
+.auth-proof div + div {
+  padding-left: 1rem;
+}
+.auth-proof div:last-child {
+  border-right: 0;
+}
+.auth-proof strong {
+  display: block;
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1rem;
+}
+.auth-proof span {
+  color: color-mix(in oklab, var(--panel-ink) 55%, transparent);
+  font-size: 0.7rem;
+}
+.auth-form-panel {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 2rem;
+}
+.auth-card {
+  width: min(440px, 100%);
+  border: 0 !important;
+  background: transparent !important;
+}
+.auth-card [data-ui="card-header"],
+.auth-card [data-ui="card-content"] {
+  padding-left: 0;
+  padding-right: 0;
+}
+.auth-card [data-ui="card-title"] {
+  font-size: 2.5rem;
+  font-weight: 600;
+  letter-spacing: -0.05em;
+}
+.auth-switch {
+  margin-top: 1.5rem;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+  text-align: left;
+}
+.auth-switch a {
+  color: var(--rust-deep);
+  text-decoration: none;
+}
+
+@media (max-width: 900px) {
+  .auth-shell {
+    grid-template-columns: 1fr;
+  }
+  .auth-story {
+    min-height: 42vh;
+  }
+  .auth-message h1 {
+    font-size: clamp(3.4rem, 12vw, 5.5rem);
+  }
+  .auth-proof {
+    display: none;
+  }
+  .auth-form-panel {
+    min-height: 58vh;
+  }
+}
+
+@media (max-width: 767px) {
+  .dashboard-main {
+    padding: 1.5rem 1rem 4rem;
+  }
+  .dashboard-heading h1 {
+    font-size: 2.4rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .auth-story {
+    min-height: 36vh;
+    padding: 1.5rem;
+  }
+  .auth-message > span,
+  .auth-message p {
+    display: none;
+  }
+  .auth-message h1 {
+    margin-top: 2rem;
+    font-size: 3.15rem;
+  }
+  .auth-form-panel {
+    min-height: 64vh;
+    padding: 1.5rem;
+  }
+}

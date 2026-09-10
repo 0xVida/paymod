@@ -1,0 +1,20 @@
+{
+  "name": "@paymod/stellar",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "test": "tsx --test src/**/*.test.ts",
+    "test:live": "STELLAR_LIVE=1 tsx --test src/**/*.live.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@paymod/payments": "file:../payments",
+    "@paymod/shared": "file:../shared",
+    "@stellar/stellar-sdk": "^14.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.6",
+    "typescript": "^5.8.3"
+  }
+}

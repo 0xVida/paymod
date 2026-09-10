@@ -1,0 +1,24 @@
+{
+  "name": "@paymod/code-core",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./browser": "./src/browser.ts"
+  },
+  "scripts": {
+    "test": "tsx --test $(find src -name '*.test.ts')",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@paymod/model-wire": "file:../model-wire",
+    "@paymod/shared": "file:../shared",
+    "tiktoken": "^1.0.22",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.16.5",
+    "tsx": "^4.20.6",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,68 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+*.vsix
+
+# Cloned third-party repos kept locally for UI/code reference only - not
+# part of this codebase, never pushed.
+/reference
+
+# Cached VS Code build downloaded by @vscode/test-electron for the E2E suite
+.vscode-test/
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Stellar contract artifacts and local Testnet configuration
+contracts/treasury/target/
+contracts/treasury/.env
+contracts/treasury/relayer-spike/.env
+tools/paymod-testnet/.state/
+tools/paymod-testnet/.state.stellar-backup/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Local database credentials
+packages/database/.env
+
+apps/api/.env
+apps/mcp-server/.env
+
+# Circle entity secret recovery files and the entity public key file - not
+# secret in the key's own case, but environment-specific config that has no
+# business being committed. See apps/api/circle.md.
+apps/api/circle-entity-public-key.pem
+apps/api/circle-recovery/
+
+# Agent-directing instruction files: local only, never pushed
+CLAUDE.md
+AGENTS.md
+rules.md
+apps/web/CLAUDE.md
+
+# Root-level planning/task docs: local only, never pushed. Anchored with a
+# leading slash so this matches only the repo-root docs/ folder, not
+# apps/web's in-app docs route or its docs sidebar component.
+/docs

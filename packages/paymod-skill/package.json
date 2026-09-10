@@ -1,0 +1,9 @@
+{
+  "name": "@paymod/skill",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Paymod wallet skill for policy-controlled agent payments",
+  "files": [
+    "SKILL.md"
+  ]
+}

@@ -1,0 +1,138 @@
+{
+  "name": "paymod-code",
+  "publisher": "paymod",
+  "displayName": "Paymod Code",
+  "description": "Pay-as-you-go AI coding agent, funded through Paymod.",
+  "version": "0.0.1",
+  "private": true,
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0xVida/paycop-init.git",
+    "directory": "apps/code-extension"
+  },
+  "icon": "media/icon.png",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "main": "./dist/extension.js",
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "paymodCodeSidebar",
+          "title": "Paymod Code",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "paymodCodeSidebar": [
+        {
+          "id": "paymodCode.sessions",
+          "name": "Sessions",
+          "type": "webview"
+        },
+        {
+          "id": "paymodCode.chatSidebar",
+          "name": "Chat",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "paymodCode.newSession",
+        "title": "Paymod Code: New Session"
+      },
+      {
+        "command": "paymodCode.openSessionInEditor",
+        "title": "Paymod Code: Open Session in Editor"
+      },
+      {
+        "command": "paymodCode.openSessionInSecondarySideBar",
+        "title": "Paymod Code: Open Session in Secondary Side Bar"
+      },
+      {
+        "command": "paymodCode.focusSessions",
+        "title": "Paymod Code: Focus Sessions"
+      },
+      {
+        "command": "paymodCode.renameSession",
+        "title": "Paymod Code: Rename Session"
+      },
+      {
+        "command": "paymodCode.deleteSession",
+        "title": "Paymod Code: Delete Session"
+      },
+      {
+        "command": "paymodCode.acceptDiff",
+        "title": "Accept Change",
+        "icon": "$(check)"
+      },
+      {
+        "command": "paymodCode.rejectDiff",
+        "title": "Reject Change",
+        "icon": "$(close)"
+      },
+      {
+        "command": "paymodCode.setByokKey",
+        "title": "Paymod Code: Set My API Key"
+      },
+      {
+        "command": "paymodCode.clearByokKey",
+        "title": "Paymod Code: Remove My API Key"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "paymodCode.acceptDiff",
+          "when": "resourceScheme == paymod-code-diff",
+          "group": "navigation@1"
+        },
+        {
+          "command": "paymodCode.rejectDiff",
+          "when": "resourceScheme == paymod-code-diff",
+          "group": "navigation@2"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Paymod Code",
+      "properties": {
+        "paymodCode.webUrl": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "description": "Base URL of the Paymod dashboard, used to open the sign-in page in your browser."
+        },
+        "paymodCode.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:3001",
+          "description": "Base URL of the Paymod API, used for device-code sign-in and inference requests."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.config.mjs && npm run build:webview",
+    "build:webview": "npm run build --workspace=@paymod/code-webview-ui",
+    "package": "node esbuild.config.mjs --production && npm run build:webview",
+    "typecheck": "tsc --noEmit",
+    "test": "files=$(find src -name '*.test.ts'); if [ -z \"$files\" ]; then echo 'No *.test.ts files - everything vscode-free has moved to @paymod/code-core, this workspace has no unit tests of its own right now (see test:e2e).'; else tsx --test $files; fi",
+    "test:e2e": "npm run build && node esbuild.config.mjs --tests && tsx src/test/run-e2e.ts"
+  },
+  "dependencies": {
+    "@paymod/code-core": "file:../../packages/code-core"
+  },
+  "devDependencies": {
+    "@types/node": "^22.16.5",
+    "@types/vscode": "^1.90.0",
+    "@vscode/test-electron": "^2.4.1",
+    "esbuild": "^0.24.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.8.3"
+  }
+}

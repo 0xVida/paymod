@@ -1,0 +1,904 @@
+// Paymod data model.
+//
+// Two rules that are not obvious from the schema alone:
+//
+// 1. Every monetary column is NUMERIC(78, 0) holding an ATOMIC INTEGER.
+//    Never a float, never a currency-scaled decimal. 0.25 USDC on Stellar
+//    (7 decimals) is stored as 2500000.
+//
+// 2. `budget_periods` and `spend_reservations` are declared here so relations
+//    and includes work  -  but they are MUTATED ONLY through raw SQL in
+//    `src/reservations.ts`. Their overspend-prevention invariants live in
+//    CHECK constraints that Prisma cannot express and the Prisma model API
+//    would happily bypass them. See that file's header.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+/// A wallet's lifecycle from creation through deployment to usable, folding
+/// what were separately SpenderStatus and TreasuryStatus before ADR 0010  -
+/// a wallet's permission-handle status and its contract's status are the
+/// same object now. CREATING covers the window between a wallet row
+/// existing and its rail-backed wallet actually being provisioned: for
+/// Circle, `POST /v1/wallets` provisions synchronously in the same request
+/// in the common case, so a wallet spends almost no time here, but a crash
+/// mid-provisioning leaves it here until the next access retries safely
+/// (`WalletsController.ensureProvisioned`, keyed off a deterministic
+/// idempotency derivation so the retry can never create a duplicate).
+/// AWAITING_SIGNATURE is dormant, kept for Stellar's own client-signed
+/// deploy flow if that rail is re-activated later; Circle wallets never
+/// pass through it. On-chain pause is its own separate concept where a rail
+/// has one (a Soroban contract's own `paused` flag, checked at settlement
+/// time), not a DB status.
+enum AgentWalletStatus {
+  CREATING
+  AWAITING_SIGNATURE
+  ACTIVE
+  ARCHIVED
+}
+
+/// How the wallet came to exist. Nullable: existing wallets predate this
+/// field and are implicitly dashboard-created. Lets a Coding Agent Wallet be
+/// identified deterministically (Paymod Code, ADR 0011) rather than matched
+/// by name string.
+enum AgentWalletSource {
+  DASHBOARD
+  PAYMOD_CODE
+}
+
+/// Which wallet infrastructure executes this wallet's settlements - see
+/// `packages/payments`'s `PaymentRail` interface, which every rail
+/// implements. Deliberately a separate axis from `networkId`: `networkId`
+/// is CAIP-2 and identifies a chain (`eip155:8453` for Base,
+/// `stellar:testnet` for Stellar); `rail` identifies who executes on that
+/// chain. A single string can't carry both without inventing a fake CAIP-2
+/// namespace (`"circle:base"` isn't a real chain id).
+enum WalletRailType {
+  STELLAR
+  CIRCLE
+}
+
+enum IntentType {
+  TRANSFER
+  X402_PAYMENT
+}
+
+enum IntentStatus {
+  PENDING
+  WAITING_APPROVAL
+  AUTHORIZED
+  PROCESSING
+  COMPLETED
+  DENIED
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+enum PolicyDecision {
+  ALLOW
+  DENY
+  REQUIRE_APPROVAL
+}
+
+enum BudgetWindow {
+  DAY
+  MONTH
+}
+
+enum ReservationStatus {
+  RESERVED
+  COMMITTED
+  RELEASED
+  EXPIRED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  DENIED
+  EXPIRED
+}
+
+enum ApprovalChannel {
+  TELEGRAM
+}
+
+enum SettlementStatus {
+  PREPARING
+  SUBMITTED
+  CONFIRMED
+  FAILED
+  /// The payment may or may not have landed. Never release a reservation in
+  /// this state  -  resolve it by re-submitting the deterministic paymentId.
+  UNKNOWN
+}
+
+enum ChainAttemptStatus {
+  SUBMITTED
+  CONFIRMED
+  FAILED
+  UNKNOWN
+}
+
+/// Top-level financial and security boundary. Exactly one User per Account  -
+/// no PERSONAL/TEAM distinction, no membership, no account switching. See
+/// ADR 0009 Decision 1, which reverses ADR 0006's `AccountType`/`Membership`
+/// model: it bought multi-tenant complexity this product has no concrete use
+/// for yet, at the cost of every future feature needing to be designed
+/// against "and which account is this scoped to."
+model Account {
+  id        String        @id
+  userId    String        @unique @map("user_id")
+  name      String
+  status    AccountStatus @default(ACTIVE)
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallets            AgentWallet[]
+  policies           Policy[]
+  intents            FinancialIntent[]
+  budgets            BudgetPeriod[]
+  audit              AuditEvent[]
+  idempotency        IdempotencyRecord[]
+  deviceAuthRequests DeviceAuthRequest[]
+  approvalRequests   ApprovalRequest[]
+  telegramConnection TelegramConnection?
+  telegramLinkRequests TelegramLinkRequest[]
+  oauthClients        OAuthClient[]
+  codeCredentials      CodeCredential[]
+  codeDepositAddress   CodeDepositAddress?
+  codeLedgerEntries    CodeLedgerEntry[]
+  codeAccountBalance   CodeAccountBalance?
+  usageReservations    UsageReservation[]
+  usageEvents          UsageEvent[]
+
+  @@map("accounts")
+}
+
+/// A human who can sign in to the dashboard. Owns exactly one Account.
+/// Distinct from AgentWallet (an agent's permission handle)  -  a User never
+/// spends directly, only manages policy, wallets and credentials.
+model User {
+  id           String   @id
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  account  Account?
+  sessions Session[]
+
+  @@map("users")
+}
+
+/// A signed-in browser session. Same prefix+hash lookup shape as
+/// `WalletCredential`  -  see `apps/api/src/common/credentials.ts`.
+model Session {
+  id         String    @id
+  userId     String    @map("user_id")
+  prefix     String    @unique
+  hash       String
+  expiresAt  DateTime  @map("expires_at")
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+/// An isolated wallet holding one agent's USDC, and the policy/approval
+/// boundary Paymod puts in front of it. Before ADR 0010 this was two
+/// objects  -  a Spender (the permission handle an external agent
+/// authenticates as) and an account-wide Treasury that every spender on the
+/// account shared. They are the same object now: fund isolation between two
+/// agents is only real if the balance itself lives in a different wallet,
+/// not a policy number checked against a shared pool.
+///
+/// Paymod does not build the underlying wallet infrastructure itself -
+/// `rail` says which third-party infrastructure actually holds and signs
+/// for this wallet's funds. Circle's Developer-Controlled Wallets today,
+/// deliberately not Circle's separate Agent Wallets product: Agent Wallets
+/// are user-controlled (2-of-2 MPC, provisioned per human through Circle's
+/// own CLI and OTP login), built for an individual operating their own
+/// agent, not for a platform provisioning wallets for many customers
+/// server-side. Developer-Controlled Wallets are the opposite by design -
+/// server-side creation, signing and execution through one entity secret -
+/// which is what this column and `WalletsController.ensureProvisioned`
+/// actually integrate against. Paymod's own value is the policy engine,
+/// human approval and audit trail sitting in front of that rail, since
+/// Developer-Controlled Wallets have no policy engine of their own.
+///
+/// This is real custody, not the non-custodial arrangement the dormant
+/// Stellar rail had: Circle executes on Paymod's own entity-secret
+/// instruction, so `ownerAddress` no longer means "the customer's own key,
+/// never held by Paymod" the way it did for a Stellar wallet - see that
+/// field's own comment below.
+///
+/// The rail-specific fields are nullable because a wallet exists as a row
+/// before it is provisioned - see `AgentWalletStatus`'s CREATING state,
+/// which precedes having a real `contractId`/`externalWalletId` at all.
+model AgentWallet {
+  id          String             @id
+  accountId   String             @map("account_id")
+  name        String
+  description String?
+  status      AgentWalletStatus  @default(CREATING)
+  source      AgentWalletSource? @map("source")
+  /// NOT NULL with a default: Circle is the only rail new wallets are
+  /// created on. STELLAR stays the default value for existing rows created
+  /// before this migration flipped it (every one of them really is
+  /// Stellar), not as an ongoing fallback - new code must always set this
+  /// explicitly on creation.
+  rail        WalletRailType     @default(CIRCLE) @map("rail")
+
+  /// CAIP-2 chain id, e.g. `eip155:8453` for Base - which chain `rail`
+  /// actually executes on, not who executes (that's `rail` itself).
+  networkId       String? @map("network_id")
+  /// Stellar-only: the deployed Soroban contract address. Dormant while
+  /// Circle is the active rail; null on every Circle-rail wallet.
+  contractId      String? @map("contract_id")
+  /// Stellar: the customer's own owner key, never held by Paymod. Circle:
+  /// there is no separate owner key - this is the wallet's own on-chain
+  /// address, the only address there is under Developer-Controlled custody.
+  ownerAddress    String? @map("owner_address")
+  /// Stellar-only: the on-chain executor role Paymod holds. Circle has no
+  /// per-wallet executor identity to record here - the wallet set
+  /// configured in `CIRCLE_WALLET_SET_ID` is the equivalent authority,
+  /// but that is server configuration, not a per-wallet value.
+  executorAddress String? @map("executor_address")
+  /// Rail-neutral counterpart to `contractId` (which is Soroban-specific -
+  /// one deployed contract per Stellar wallet). A Circle-rail wallet has no
+  /// contract to deploy; it populates this with Circle's own walletId
+  /// instead. Exactly one of `contractId`/`externalWalletId` is populated,
+  /// depending on `rail`.
+  externalWalletId String? @map("external_wallet_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  account            Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  credentials        WalletCredential[]
+  assets             WalletAsset[]
+  policies           Policy[]
+  intents            FinancialIntent[]
+  budgets            BudgetPeriod[]
+  settlements        Settlement[]
+  deviceAuthRequests DeviceAuthRequest[]
+  oauthCodes         OAuthAuthorizationCode[]
+  oauthTokens        OAuthToken[]
+  codeCredentials    CodeCredential[]
+
+  @@unique([networkId, contractId])
+  @@index([accountId])
+  @@map("agent_wallets")
+}
+
+/// The raw `pc_live_...` secret is shown once and never stored. `prefix` is
+/// the non-secret lookup handle; `hash` is compared in constant time.
+/// Many-to-one on purpose  -  a wallet may eventually carry more than one
+/// (MCP credential, production credential, a future scoped/session
+/// credential); V1 issues exactly one by default but the shape must not
+/// assume that permanently. See ADR 0009's deferred delegation section.
+model WalletCredential {
+  id         String    @id
+  walletId   String    @map("wallet_id")
+  prefix     String    @unique
+  hash       String
+  lastUsedAt DateTime? @map("last_used_at")
+  expiresAt  DateTime? @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  wallet AgentWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@map("wallet_credentials")
+}
+
+/// A separate credential authority from `WalletCredential`: it authenticates
+/// Paymod Code sign-in/inference only (`pmcode_...` secret, distinct prefix
+/// and table), and can never satisfy `WalletCredentialGuard` - a compromised
+/// coding session must not automatically become financial authority.
+model CodeCredential {
+  id         String    @id
+  accountId  String    @map("account_id")
+  walletId   String    @map("wallet_id")
+  prefix     String    @unique
+  hash       String
+  lastUsedAt DateTime? @map("last_used_at")
+  expiresAt  DateTime? @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  account Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  wallet  AgentWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([accountId])
+  @@map("code_credentials")
+}
+
+/// One Solana address per account for funding a Paymod Code balance - see
+/// PAYMOD_CODE_PLAN.md section 2. `encryptedSecretKey` is the address's own
+/// keypair, encrypted at rest (`apps/api/src/common/secret-encryption.ts`)
+/// so the address is real and eventually sweepable; nothing reads that key
+/// yet, sweeping is separate, later work. `lastProcessedSignature` is the
+/// cursor "I've sent it" advances - checking for new deposits queries only
+/// what's newer than this, not a balance snapshot (which would double
+/// count across deposits and break once a sweep moves funds out).
+model CodeDepositAddress {
+  id                     String    @id
+  accountId              String    @unique @map("account_id")
+  address                String    @unique
+  encryptedSecretKey     String    @map("encrypted_secret_key")
+  lastProcessedSignature String?   @map("last_processed_signature")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("code_deposit_addresses")
+}
+
+enum CodeLedgerEntryType {
+  DEPOSIT
+  USAGE_CHARGE
+  REFUND
+  ADJUSTMENT
+}
+
+/// The single authoritative, append-only financial ledger for a Paymod Code
+/// balance - never updated or deleted. `amountAtomic` is signed (positive
+/// for DEPOSIT/REFUND/a credit ADJUSTMENT, negative for USAGE_CHARGE),
+/// reusing USDC's own 6-decimal atomic unit directly (1,000,000 = $1) since
+/// USDC deposits are credited 1:1 with no conversion - SOL deposits are not
+/// credited yet (see PAYMOD_CODE_PLAN.md section 2, deferred pending a
+/// price source). This is the audit trail; `CodeAccountBalance` is the
+/// fast, atomically-updated aggregate the hot-path spend check actually
+/// reads, kept in lockstep by writing both in the same transaction on
+/// every credit, reservation, commit and release - summing this table on
+/// every request would just relocate the same concurrency race a guarded
+/// aggregate update closes. `txSignature` is set only for DEPOSIT rows (the
+/// unique constraint with it is what makes re-running "I've sent it" safe
+/// to call any number of times for the same transaction);
+/// `usageEventId` only for USAGE_CHARGE rows, pointing at the detailed
+/// metering record it came from.
+model CodeLedgerEntry {
+  id           String              @id
+  accountId    String              @map("account_id")
+  type         CodeLedgerEntryType
+  amountAtomic Decimal             @map("amount_atomic") @db.Decimal(78, 0)
+  txSignature  String?             @map("tx_signature")
+  usageEventId String?             @unique @map("usage_event_id")
+  createdAt    DateTime            @default(now()) @map("created_at")
+
+  account    Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  usageEvent UsageEvent? @relation(fields: [usageEventId], references: [id])
+
+  @@unique([txSignature, accountId])
+  @@index([accountId, createdAt])
+  @@map("code_ledger_entries")
+}
+
+/// The fast, atomically-updated aggregate `CodeBalanceRepository` checks
+/// and mutates via a single guarded conditional `UPDATE` per operation -
+/// the same mechanism `budget_periods`/`spend_reservations`
+/// (`src/reservations.ts`) already use to close the exact concurrency race
+/// a separate check-then-write can't: two simultaneous reservation
+/// attempts against a near-exhausted balance must never both succeed.
+/// `balanceAtomic` is the confirmed balance (credits minus committed
+/// usage, NOT counting pending reservations); `reservedAtomic` is the sum
+/// of currently RESERVED (not yet committed or released) holds. Spendable
+/// right now is `balanceAtomic - reservedAtomic`, computed at check time,
+/// never stored separately.
+model CodeAccountBalance {
+  accountId      String   @id @map("account_id")
+  balanceAtomic  Decimal  @map("balance_atomic") @db.Decimal(78, 0)
+  reservedAtomic Decimal  @map("reserved_atomic") @db.Decimal(78, 0)
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("code_account_balances")
+}
+
+enum InferenceProvider {
+  OPENAI
+  ANTHROPIC
+}
+
+/// Real provider API keys, encrypted at rest with the same
+/// `secret-encryption.ts` (AES-256-GCM) utility already built for
+/// `CodeDepositAddress`'s key - "env now, KMS later". Replaces
+/// `provider-keys.ts`'s env-var lookup without changing the inference
+/// proxy's external shape; `GET /v1/code/models` reads `isActive` per
+/// provider to report only what's genuinely servable.
+model ProviderApiKey {
+  id           String            @id
+  provider     InferenceProvider
+  label        String
+  encryptedKey String            @map("encrypted_key")
+  isActive     Boolean           @default(true) @map("is_active")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  revokedAt    DateTime?         @map("revoked_at")
+
+  @@index([provider, isActive])
+  @@map("provider_api_keys")
+}
+
+/// Server-authoritative model pricing - never computed client-side.
+/// Versioned and effective-dated so "why was task X charged $0.82 on
+/// August 20" is answerable from the historical row, not recomputed
+/// against today's prices. A `UsageReservation` snapshots the active
+/// `version` at reservation time and prices its eventual commit against
+/// that exact snapshot, never whatever row happens to be active once a
+/// long stream finishes.
+///
+/// The three `*TokenPriceAtomic` fields are priced per 1,000,000 tokens,
+/// not per token - a real per-token price (fractions of a millionth of a
+/// dollar) cannot be represented as a whole-number atomic amount, and
+/// "price per million tokens" is how every provider already publishes
+/// pricing. `apps/api/src/code/usage-pricing.ts` divides by 1,000,000 when
+/// computing a charge.
+model ModelPricing {
+  id                          String            @id
+  provider                    InferenceProvider
+  model                       String
+  inputTokenPriceAtomic       Decimal           @map("input_token_price_atomic") @db.Decimal(78, 0)
+  cachedInputTokenPriceAtomic Decimal?          @map("cached_input_token_price_atomic") @db.Decimal(78, 0)
+  outputTokenPriceAtomic      Decimal           @map("output_token_price_atomic") @db.Decimal(78, 0)
+  markupBasisPoints           Int               @map("markup_basis_points")
+  version                     Int
+  effectiveFrom               DateTime          @map("effective_from")
+  effectiveTo                 DateTime?         @map("effective_to")
+
+  @@index([provider, model, effectiveFrom])
+  @@map("model_pricing")
+}
+
+enum UsageReservationStatus {
+  RESERVED
+  COMMITTED
+  RELEASED
+  EXPIRED
+  /// The provider request began (so Paymod may already owe it money) but
+  /// the terminal usage event never arrived - a client disconnect or
+  /// network failure genuinely mid-stream. Never auto-released: the
+  /// chosen failure mode is over-reservation, not over-payment, same
+  /// invariant `src/reservations.ts` already documents for budget
+  /// reservations. Held until a human or a reconciliation job resolves it.
+  RECONCILIATION_REQUIRED
+}
+
+/// A hold against `CodeAccountBalance`, not a `FinancialIntent` and never
+/// routed through the policy engine - ordinary inference is not a
+/// financial action. `sessionId`/`taskId` are opaque client-generated
+/// correlation strings scoped under `accountId` (Paymod Code sessions are
+/// local-only, disk-backed in the extension - there is no server-side
+/// Session table to verify them against). `pricingVersion` is the
+/// snapshot `ModelPricing` version this reservation's eventual commit
+/// must price against.
+model UsageReservation {
+  id              String                 @id
+  accountId       String                 @map("account_id")
+  sessionId       String                 @map("session_id")
+  taskId          String                 @map("task_id")
+  provider        InferenceProvider
+  model           String
+  pricingVersion  Int                    @map("pricing_version")
+  estimatedAtomic Decimal                @map("estimated_atomic") @db.Decimal(78, 0)
+  actualAtomic    Decimal?               @map("actual_atomic") @db.Decimal(78, 0)
+  status          UsageReservationStatus @default(RESERVED)
+  createdAt       DateTime               @default(now()) @map("created_at")
+  finalizedAt     DateTime?              @map("finalized_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, status])
+  @@map("usage_reservations")
+}
+
+/// An immutable record of one completed provider call - what the task-cost
+/// aggregation (`GROUP BY task_id`) and per-day provider-cost
+/// reconciliation both read. One `CodeLedgerEntry` (type USAGE_CHARGE)
+/// always exists for a committed `UsageEvent`; this table is the detailed
+/// audit record that entry's `usageEventId` points back to.
+model UsageEvent {
+  id                 String            @id
+  accountId          String            @map("account_id")
+  sessionId          String            @map("session_id")
+  taskId             String            @map("task_id")
+  reservationId      String            @unique @map("reservation_id")
+  provider           InferenceProvider
+  model              String
+  inputTokens        Int               @map("input_tokens")
+  cachedInputTokens  Int?              @map("cached_input_tokens")
+  outputTokens       Int               @map("output_tokens")
+  providerCostAtomic Decimal           @map("provider_cost_atomic") @db.Decimal(78, 0)
+  markupAtomic       Decimal           @map("markup_atomic") @db.Decimal(78, 0)
+  chargedAtomic      Decimal           @map("charged_atomic") @db.Decimal(78, 0)
+  pricingVersion     Int               @map("pricing_version")
+  /// The real provider's own request id (`x-request-id`/`request-id`
+  /// response header), when it sent one - "which provider request produced
+  /// this charge" answerable without re-deriving it from timestamps.
+  providerRequestId  String?           @map("provider_request_id")
+  createdAt          DateTime          @default(now()) @map("created_at")
+
+  account     Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  ledgerEntry CodeLedgerEntry?
+
+  @@index([accountId, createdAt])
+  @@map("usage_events")
+}
+
+model OAuthClient {
+  id           String   @id
+  accountId    String?  @map("account_id")
+  name         String?
+  redirectUris Json     @map("redirect_uris")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  account Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  codes   OAuthAuthorizationCode[]
+  tokens  OAuthToken[]
+
+  @@map("oauth_clients")
+}
+
+model OAuthAuthorizationCode {
+  id            String   @id
+  codeHash      String   @unique @map("code_hash")
+  clientId      String   @map("client_id")
+  walletId      String   @map("wallet_id")
+  redirectUri   String   @map("redirect_uri")
+  scope         String
+  resource      String
+  codeChallenge String   @map("code_challenge")
+  expiresAt     DateTime @map("expires_at")
+  consumedAt    DateTime? @map("consumed_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  client OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  wallet AgentWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, expiresAt])
+  @@index([walletId])
+  @@map("oauth_authorization_codes")
+}
+
+model OAuthToken {
+  id                String    @id
+  accessTokenHash   String    @unique @map("access_token_hash")
+  accessTokenPrefix String    @unique @map("access_token_prefix")
+  refreshTokenHash  String    @unique @map("refresh_token_hash")
+  refreshTokenPrefix String   @unique @map("refresh_token_prefix")
+  clientId          String    @map("client_id")
+  walletId          String    @map("wallet_id")
+  scope             String
+  resource          String
+  expiresAt         DateTime  @map("expires_at")
+  refreshExpiresAt  DateTime  @map("refresh_expires_at")
+  revokedAt         DateTime? @map("revoked_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  client OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  wallet AgentWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([clientId, expiresAt])
+  @@map("oauth_tokens")
+}
+
+enum DeviceAuthStatus {
+  PENDING
+  APPROVED
+  DENIED
+  CONSUMED
+  EXPIRED
+}
+
+/// RFC 8628-style device authorization: a headless client (the Paymod Code
+/// extension, which has no browser session) starts a request and polls it
+/// with `deviceCodeHash`/`deviceCodePrefix` (a bearer secret, stored hashed
+/// like `WalletCredential`), while a human approves or denies it in the
+/// dashboard by its short `userCode`. `accountId`/`walletId` are set on
+/// approval, not at creation. The minted credential is only ever returned on
+/// the poll that observes `APPROVED`, which then flips the row to
+/// `CONSUMED` so a replayed poll can't re-read it.
+model DeviceAuthRequest {
+  id               String           @id
+  deviceCodeHash   String           @unique @map("device_code_hash")
+  deviceCodePrefix String           @unique @map("device_code_prefix")
+  userCode         String           @unique @map("user_code")
+  status           DeviceAuthStatus @default(PENDING)
+  accountId        String?          @map("account_id")
+  walletId         String?          @map("wallet_id")
+  expiresAt        DateTime         @map("expires_at")
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  account Account?     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  wallet  AgentWallet? @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@map("device_auth_requests")
+}
+
+/// Per-network asset config. `decimals` is stored, never assumed  -  Stellar
+/// USDC is 7dp while USDC on most EVM chains is 6dp.
+model WalletAsset {
+  id              String  @id
+  walletId        String  @map("wallet_id")
+  assetCode       String  @map("asset_code")
+  decimals        Int
+  contractAddress String? @map("contract_address")
+  enabled         Boolean @default(true)
+
+  wallet AgentWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@unique([walletId, assetCode])
+  @@map("wallet_assets")
+}
+
+/// `walletId = null` applies account-wide. Per ADR 0010's migration plan,
+/// account-wide policy is a restriction/ceiling only  -  it can narrow a
+/// wallet's authority but can never by itself satisfy a wallet's
+/// spending-authority gate. Resolution rules live in @paymod/policy-engine,
+/// not here.
+model Policy {
+  id        String   @id
+  accountId String   @map("account_id")
+  walletId  String?  @map("wallet_id")
+  type      String
+  config    Json
+  priority  Int      @default(0)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  account Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  wallet  AgentWallet? @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, enabled])
+  @@index([walletId])
+  @@map("policies")
+}
+
+/// What the wallet asked permission to do  -  deliberately separate from how
+/// it is executed (that is `Settlement`).
+model FinancialIntent {
+  id             String       @id
+  accountId      String       @map("account_id")
+  walletId       String       @map("wallet_id")
+  requestId      String       @map("request_id")
+  idempotencyKey String       @map("idempotency_key")
+  type           IntentType
+  status         IntentStatus @default(PENDING)
+
+  atomicAmount Decimal @map("atomic_amount") @db.Decimal(78, 0)
+  assetCode    String  @map("asset_code")
+  networkId    String  @map("network_id")
+  destination  String
+  action       String?
+  purpose      String?
+
+  decision       PolicyDecision?
+  decisionReason String?         @map("decision_reason")
+  policyTrace    Json?           @map("policy_trace")
+
+  metadata  Json      @default("{}")
+  expiresAt DateTime  @map("expires_at")
+  /// Worker lease. A second worker cannot claim an intent whose lease is live.
+  lockedAt  DateTime? @map("locked_at")
+  attempts  Int       @default(0)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  account      Account            @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  wallet       AgentWallet        @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  reservations SpendReservation[]
+  settlement   Settlement?
+  approval     ApprovalRequest?
+
+  @@index([status, lockedAt])
+  @@index([accountId, createdAt])
+  @@index([walletId, createdAt])
+  @@map("financial_intents")
+}
+
+/// A human decision required before an intent can become authorized. The
+/// callback itself carries a signed, short-lived reference and never trusts
+/// an identifier supplied by Telegram alone.
+model ApprovalRequest {
+  id                        String          @id
+  accountId                 String          @map("account_id")
+  intentId                  String          @unique @map("intent_id")
+  channel                   ApprovalChannel
+  status                    ApprovalStatus  @default(PENDING)
+  telegramChatId            String?         @map("telegram_chat_id")
+  telegramMessageId         String?         @map("telegram_message_id")
+  resolvedByTelegramUserId  String?         @map("resolved_by_telegram_user_id")
+  resolvedAt                DateTime?       @map("resolved_at")
+  createdAt                 DateTime        @default(now()) @map("created_at")
+  updatedAt                 DateTime        @updatedAt @map("updated_at")
+
+  account Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  intent  FinancialIntent @relation(fields: [intentId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, status])
+  @@map("approval_requests")
+}
+
+/// The verified Telegram identity allowed to approve one account's payments.
+/// A user links it by consuming a random one-time bot deep-link token.
+model TelegramConnection {
+  id             String   @id
+  accountId      String   @unique @map("account_id")
+  telegramUserId String   @map("telegram_user_id")
+  chatId         String   @map("chat_id")
+  username       String?
+  firstName      String?  @map("first_name")
+  connectedAt    DateTime @default(now()) @map("connected_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([telegramUserId])
+  @@map("telegram_connections")
+}
+
+/// Hashed, single-use token for a Telegram `/start` connection command.
+model TelegramLinkRequest {
+  id          String    @id
+  accountId   String    @map("account_id")
+  tokenPrefix String    @unique @map("token_prefix")
+  tokenHash   String    @unique @map("token_hash")
+  expiresAt   DateTime  @map("expires_at")
+  consumedAt  DateTime? @map("consumed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, expiresAt])
+  @@map("telegram_link_requests")
+}
+
+/// A resolved calendar window. Written by raw SQL only  -  see src/reservations.ts.
+model BudgetPeriod {
+  id        String       @id
+  accountId String       @map("account_id")
+  walletId  String?      @map("wallet_id")
+  window    BudgetWindow
+  assetCode String       @map("asset_code")
+  networkId String       @map("network_id")
+  startsAt  DateTime     @map("starts_at")
+  endsAt    DateTime     @map("ends_at")
+
+  limitAtomic    Decimal @map("limit_atomic") @db.Decimal(78, 0)
+  spentAtomic    Decimal @map("spent_atomic") @db.Decimal(78, 0)
+  reservedAtomic Decimal @map("reserved_atomic") @db.Decimal(78, 0)
+
+  account      Account            @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  wallet       AgentWallet?       @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  reservations SpendReservation[]
+
+  @@map("budget_periods")
+}
+
+/// Written by raw SQL only  -  see src/reservations.ts.
+model SpendReservation {
+  id              String            @id
+  budgetPeriodId  String            @map("budget_period_id")
+  intentId        String            @map("intent_id")
+  walletId        String            @map("wallet_id")
+  requestId       String            @map("request_id")
+  idempotencyKey  String            @map("idempotency_key")
+  requestedAtomic Decimal           @map("requested_atomic") @db.Decimal(78, 0)
+  actualAtomic    Decimal?          @map("actual_atomic") @db.Decimal(78, 0)
+  status          ReservationStatus @default(RESERVED)
+  expiresAt       DateTime          @map("expires_at")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  finalizedAt     DateTime?         @map("finalized_at")
+
+  budgetPeriod BudgetPeriod    @relation(fields: [budgetPeriodId], references: [id], onDelete: Cascade)
+  intent       FinancialIntent @relation(fields: [intentId], references: [id], onDelete: Cascade)
+
+  @@unique([budgetPeriodId, idempotencyKey])
+  @@unique([intentId, budgetPeriodId])
+  @@map("spend_reservations")
+}
+
+/// How an intent was actually paid. One per intent, enforced by @unique  -  a
+/// third independent guard against double-payment.
+model Settlement {
+  id           String           @id
+  intentId     String           @unique @map("intent_id")
+  walletId     String           @map("wallet_id")
+  /// sha256("paymod:v1:" + intentId). Deterministic across every retry, which
+  /// is what makes double-payment impossible at the ledger.
+  paymentIdHex String           @map("payment_id_hex")
+  status       SettlementStatus @default(PREPARING)
+  txHash       String?          @map("tx_hash")
+  failureCode  String?          @map("failure_code")
+  actualAtomic Decimal?         @map("actual_atomic") @db.Decimal(78, 0)
+  submittedAt  DateTime?        @map("submitted_at")
+  confirmedAt  DateTime?        @map("confirmed_at")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  intent   FinancialIntent  @relation(fields: [intentId], references: [id], onDelete: Cascade)
+  wallet   AgentWallet      @relation(fields: [walletId], references: [id])
+  attempts ChainTxAttempt[]
+
+  @@index([status])
+  @@map("settlements")
+}
+
+/// Persisted BEFORE submission, so a crash mid-flight is still traceable.
+model ChainTxAttempt {
+  id           String             @id
+  settlementId String             @map("settlement_id")
+  attempt      Int
+  txHash       String?            @map("tx_hash")
+  status       ChainAttemptStatus @default(SUBMITTED)
+  errorCode    String?            @map("error_code")
+  envelopeXdr  String?            @map("envelope_xdr")
+  createdAt    DateTime           @default(now()) @map("created_at")
+
+  settlement Settlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+
+  @@unique([settlementId, attempt])
+  @@map("chain_tx_attempts")
+}
+
+model IdempotencyRecord {
+  id               String   @id
+  accountId        String   @map("account_id")
+  key              String
+  requestHash      String   @map("request_hash")
+  intentId         String?  @map("intent_id")
+  responseSnapshot Json?    @map("response_snapshot")
+  createdAt        DateTime @default(now()) @map("created_at")
+  expiresAt        DateTime @map("expires_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, key])
+  @@map("idempotency_records")
+}
+
+/// Append-only. No UPDATE or DELETE grant is issued for this table.
+model AuditEvent {
+  id         String   @id
+  accountId  String   @map("account_id")
+  actorType  String   @map("actor_type")
+  actorId    String?  @map("actor_id")
+  action     String
+  targetType String?  @map("target_type")
+  targetId   String?  @map("target_id")
+  requestId  String?  @map("request_id")
+  payload    Json     @default("{}")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, createdAt])
+  @@map("audit_events")
+}

@@ -1,0 +1,31 @@
+{
+  "name": "paymod-monorepo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm --workspace @paymod/web run dev",
+    "build:web": "npm --workspace @paymod/web run build",
+    "lint:web": "npm --workspace @paymod/web run lint",
+    "dev:frontend": "npm run dev:web",
+    "build:frontend": "npm run build:web",
+    "build:packages": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:foundation": "npm --workspace @paymod/policy-engine test",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:generate": "npm --workspace @paymod/database run generate",
+    "db:migrate": "npm --workspace @paymod/database run migrate",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "deepmerge-ts": "^8.0.0"
+  }
+}
