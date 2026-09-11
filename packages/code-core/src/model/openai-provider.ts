@@ -63,7 +63,12 @@ function buildBody(request: ModelRequest) {
     ...(request.tools && {
       tools: request.tools.map((tool) => ({ type: "function", function: { name: tool.name, description: tool.description, parameters: tool.parameters } })),
     }),
-    ...(request.maxOutputTokens !== undefined && { max_tokens: request.maxOutputTokens }),
+    // max_completion_tokens, not the deprecated max_tokens: o-series and
+    // the gpt-5.6 family reject max_tokens outright ("Unsupported
+    // parameter"), and OpenAI's own docs describe max_completion_tokens
+    // as the general replacement, not a reasoning-model-only field - it
+    // works across older models (gpt-4o included) too.
+    ...(request.maxOutputTokens !== undefined && { max_completion_tokens: request.maxOutputTokens }),
     ...(request.temperature !== undefined && { temperature: request.temperature }),
     stream: true,
     // without this, OpenAI omits `usage` from streamed chunks and `parseOpenAiStream`

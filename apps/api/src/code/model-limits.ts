@@ -1,8 +1,8 @@
 /**
- * the server-enforced output ceiling: a client-supplied `max_tokens` is
- * never trusted past this, whether or not one was even supplied (Anthropic
- * requires it; OpenAI doesn't, so an absent value falls back to the
- * ceiling itself rather than an unbounded generation).
+ * the server-enforced output ceiling: a client-supplied max output token
+ * value is never trusted past this, whether or not one was even supplied
+ * (Anthropic requires it; OpenAI doesn't, so an absent value falls back
+ * to the ceiling itself rather than an unbounded generation).
  */
 const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
 
@@ -38,9 +38,10 @@ export function resolveEffectiveMaxOutput(model: string, requested: number | und
   return Math.min(requested, ceiling);
 }
 
-/** both OpenAI's and Anthropic's request bodies use the same field name for this, so one extractor covers both wire formats. */
+/** Anthropic's wire format uses `max_tokens`; OpenAI's now uses `max_completion_tokens` (`max_tokens` is deprecated there and outright rejected by o-series and the gpt-5.6 family) - checks both since either could be the real field depending on which provider sent this body. */
 export function extractRequestedMaxOutput(body: unknown): number | undefined {
   if (typeof body !== "object" || body === null) return undefined;
-  const value = (body as Record<string, unknown>)["max_tokens"];
+  const record = body as Record<string, unknown>;
+  const value = record["max_completion_tokens"] ?? record["max_tokens"];
   return typeof value === "number" ? value : undefined;
 }

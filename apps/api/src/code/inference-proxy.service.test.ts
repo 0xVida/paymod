@@ -84,6 +84,17 @@ function openAiSseStream(content: string, promptTokens: number, completionTokens
   return new globalThis.Response(body, { status: 200, headers: { "Content-Type": "text/event-stream" } });
 }
 
+function anthropicSseStream(text: string, inputTokens: number, outputTokens: number): globalThis.Response {
+  const events = [
+    { type: "message_start", message: { usage: { input_tokens: inputTokens } } },
+    { type: "content_block_delta", index: 0, delta: { type: "text_delta", text } },
+    { type: "message_delta", delta: { stop_reason: "end_turn" }, usage: { output_tokens: outputTokens } },
+    { type: "message_stop" },
+  ];
+  const body = events.map((event) => `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`).join("");
+  return new globalThis.Response(body, { status: 200, headers: { "Content-Type": "text/event-stream" } });
+}
+
 function forwardParams(overrides: Partial<Parameters<InferenceProxyService["meteredForward"]>[0]> = {}) {
   const fake = fakeResponse();
   return {
@@ -223,6 +234,44 @@ describe("InferenceProxyService.meteredForward", () => {
     await service.meteredForward(params);
 
     assert.deepEqual(capturedBody?.["stream_options"], { include_usage: true });
+  });
+
+  test("the outbound OpenAI request uses max_completion_tokens, never the deprecated max_tokens - o-series and the gpt-5.6 family reject max_tokens outright", async () => {
+    await prisma.codeAccountBalance.create({ data: { accountId, balanceAtomic: "1000000", reservedAtomic: "0" } });
+    let capturedBody: Record<string, unknown> | undefined;
+    globalThis.fetch = (async (_url, init) => {
+      capturedBody = JSON.parse((init as RequestInit).body as string);
+      return openAiSseStream("hello", 100, 20);
+    }) as typeof fetch;
+
+    const service = new InferenceProxyService(prisma, fakePricing(), fakeProviderKeys());
+    // a stale, not-yet-rebuilt client could still send max_tokens - the
+    // server must strip it, not forward it alongside max_completion_tokens.
+    const { params } = forwardParams({ body: { model: "gpt-4o", messages: [{ role: "user", content: "hi" }], max_tokens: 999 } });
+    await service.meteredForward(params);
+
+    assert.equal(typeof capturedBody?.["max_completion_tokens"], "number");
+    assert.equal(capturedBody?.["max_tokens"], undefined);
+  });
+
+  test("the outbound Anthropic request still uses max_tokens - it's a required field there, not a deprecated one", async () => {
+    await prisma.codeAccountBalance.create({ data: { accountId, balanceAtomic: "1000000", reservedAtomic: "0" } });
+    let capturedBody: Record<string, unknown> | undefined;
+    globalThis.fetch = (async (_url, init) => {
+      capturedBody = JSON.parse((init as RequestInit).body as string);
+      return anthropicSseStream("hello", 10, 5);
+    }) as typeof fetch;
+
+    const service = new InferenceProxyService(prisma, fakePricing({ ...PRICING, provider: "ANTHROPIC", model: "claude-sonnet-5" }), fakeProviderKeys());
+    const { params } = forwardParams({
+      provider: "ANTHROPIC",
+      wireProvider: "anthropic",
+      body: { model: "claude-sonnet-5", messages: [{ role: "user", content: "hi" }] },
+    });
+    await service.meteredForward(params);
+
+    assert.equal(typeof capturedBody?.["max_tokens"], "number");
+    assert.equal(capturedBody?.["max_completion_tokens"], undefined);
   });
 
   test("commit prices against the version snapshotted at reservation time, not whatever becomes active mid-stream", async () => {

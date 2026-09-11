@@ -90,9 +90,19 @@ export class InferenceProxyService {
     const apiKey = await this.providerKeys.resolveActiveKey(params.provider);
 
     const effectiveMaxOutput = resolveEffectiveMaxOutput(model, extractRequestedMaxOutput(params.body));
+    // drop whatever the client sent under either name first - an older,
+    // not-yet-rebuilt client could still send max_tokens for OpenAI, and
+    // leaving it in place alongside max_completion_tokens would still get
+    // the whole request rejected. the server always decides the outbound
+    // field name and value, never trusts the client's.
+    const { max_tokens: _clientMaxTokens, max_completion_tokens: _clientMaxCompletionTokens, ...bodyWithoutMaxTokens } = params.body;
     const outboundBody = {
-      ...params.body,
-      max_tokens: effectiveMaxOutput,
+      ...bodyWithoutMaxTokens,
+      // max_completion_tokens for OpenAI: max_tokens is deprecated and
+      // outright rejected by o-series and the gpt-5.6 family ("Unsupported
+      // parameter"). Anthropic still wants max_tokens - it's a required
+      // field there, not a deprecated one.
+      ...(params.wireProvider === "openai" ? { max_completion_tokens: effectiveMaxOutput } : { max_tokens: effectiveMaxOutput }),
       stream: true,
       // OpenAI only reports usage in the final chunk when explicitly opted
       // in - without this every charge would compute against 0 tokens.
