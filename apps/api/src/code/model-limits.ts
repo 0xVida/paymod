@@ -57,6 +57,31 @@ export function resolveEffectiveMaxOutput(model: string, requested: number | und
   return Math.min(requested, ceiling);
 }
 
+/**
+ * a realistic single-turn output length, used only to size the upfront
+ * balance reservation - never sent to the provider as the actual
+ * generation cap (`resolveEffectiveMaxOutput` still governs that, still
+ * defaulting to the full ceiling so a real long generation is never
+ * truncated). Without this, a client that never specifies an explicit
+ * max output (Paymod Code never does today) reserves against the full
+ * ceiling every time - for a 128k-ceiling, $20-25/M-output model that's
+ * a ~$3+ hold before a single request can even start, regardless of how
+ * little a typical turn actually costs. `code-balance.ts`'s `commit()`
+ * already caps the real charge at whatever was reserved and absorbs any
+ * gap as Paymod's own cost, so sizing this below the ceiling is safe:
+ * the rare turn that runs longer than expected just costs Paymod a bit
+ * more that one time, it never overcharges the account or fails to
+ * settle.
+ */
+const RESERVATION_ESTIMATE_TOKENS = 8000;
+
+/** like `resolveEffectiveMaxOutput`, but for sizing the reservation specifically - an explicit client request is still honored and capped at the ceiling, only the "nothing requested" default differs. */
+export function resolveReservationOutput(model: string, requested: number | undefined): number {
+  const ceiling = getServerMaxOutput(model);
+  if (requested === undefined || requested <= 0) return Math.min(RESERVATION_ESTIMATE_TOKENS, ceiling);
+  return Math.min(requested, ceiling);
+}
+
 /** Anthropic's wire format uses `max_tokens`; OpenAI's now uses `max_completion_tokens` (`max_tokens` is deprecated there and outright rejected by o-series and the gpt-5.6 family) - checks both since either could be the real field depending on which provider sent this body. */
 export function extractRequestedMaxOutput(body: unknown): number | undefined {
   if (typeof body !== "object" || body === null) return undefined;

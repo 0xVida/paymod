@@ -8,7 +8,7 @@ import type { ModelEvent, ModelUsage } from "@paymod/model-wire";
 import { PrismaService } from "../common/prisma.service.js";
 import { ModelPricingService } from "./model-pricing.service.js";
 import { ProviderKeysService } from "./provider-keys.service.js";
-import { resolveEffectiveMaxOutput, extractRequestedMaxOutput, needsReasoningEffortNone } from "./model-limits.js";
+import { resolveEffectiveMaxOutput, resolveReservationOutput, extractRequestedMaxOutput, needsReasoningEffortNone } from "./model-limits.js";
 import { estimateMaxChargeAtomic, computeActualChargeAtomic } from "./usage-pricing.js";
 
 export type MeteredForwardParams = {
@@ -89,7 +89,13 @@ export class InferenceProxyService {
     const pricing = await this.pricingService.getActivePricing(params.provider, model);
     const apiKey = await this.providerKeys.resolveActiveKey(params.provider);
 
-    const effectiveMaxOutput = resolveEffectiveMaxOutput(model, extractRequestedMaxOutput(params.body));
+    const requestedMaxOutput = extractRequestedMaxOutput(params.body);
+    const effectiveMaxOutput = resolveEffectiveMaxOutput(model, requestedMaxOutput);
+    // sized smaller than effectiveMaxOutput when the client didn't ask for
+    // a specific amount - see resolveReservationOutput's own doc for why
+    // this is safe: the reservation isn't the generation cap, and a real
+    // charge can never exceed what was actually reserved.
+    const reservationOutput = resolveReservationOutput(model, requestedMaxOutput);
     // drop whatever the client sent under either name first - an older,
     // not-yet-rebuilt client could still send max_tokens for OpenAI, and
     // leaving it in place alongside max_completion_tokens would still get
@@ -116,7 +122,7 @@ export class InferenceProxyService {
       // caller-supplied fields.
       ...(params.wireProvider === "openai" && { stream_options: { include_usage: true } }),
     };
-    const estimatedAtomic = estimateMaxChargeAtomic(pricing, effectiveMaxOutput, outboundBody);
+    const estimatedAtomic = estimateMaxChargeAtomic(pricing, reservationOutput, outboundBody);
 
     const reservation = await this.balances.reserve({
       accountId: params.accountId,

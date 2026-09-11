@@ -284,6 +284,39 @@ describe("InferenceProxyService.meteredForward", () => {
     assert.equal(capturedBody?.["reasoning_effort"], undefined);
   });
 
+  test("the reservation is sized against a realistic default output length, not the model's full ceiling, when the client asks for nothing specific - otherwise a modest balance could never even attempt a high-ceiling, premium-output model", async () => {
+    // gpt-5.6-sol's real pricing: reserving against its full 128k-token
+    // ceiling would need ~$3.23 for this request body - reserving against
+    // the realistic 8k-token default needs closer to 23 cents.
+    const solPricing: ModelPricingRow = { ...PRICING, provider: "OPENAI", model: "gpt-5.6-sol", inputTokenPriceAtomic: "4000000", outputTokenPriceAtomic: "20000000", markupBasisPoints: 2500 };
+    await prisma.codeAccountBalance.create({ data: { accountId, balanceAtomic: "300000", reservedAtomic: "0" } }); // $0.30 - would fail under the old full-ceiling reservation
+
+    let resolveUpstream!: (value: globalThis.Response) => void;
+    const upstreamPromise = new Promise<globalThis.Response>((resolve) => { resolveUpstream = resolve; });
+    let capturedBody: Record<string, unknown> | undefined;
+    globalThis.fetch = (async (_url, init) => {
+      capturedBody = JSON.parse((init as RequestInit).body as string);
+      return upstreamPromise;
+    }) as typeof fetch;
+
+    const service = new InferenceProxyService(prisma, fakePricing(solPricing), fakeProviderKeys());
+    const { params } = forwardParams({ body: { model: "gpt-5.6-sol", messages: [{ role: "user", content: "x".repeat(20000) }] } });
+    const forwardCompleted = service.meteredForward(params);
+
+    // while the request is in flight, the reservation is already placed -
+    // check it directly rather than waiting for commit.
+    const reservation = await prisma.usageReservation.findFirstOrThrow({ where: { accountId } });
+    assert.ok(Number(reservation.estimatedAtomic) < 300000, `reservation of ${reservation.estimatedAtomic} should be well under the $0.30 balance, not the ~$3.23 the old full-ceiling sizing would have needed`);
+
+    // the outbound request's actual generation cap must still be the full
+    // ceiling regardless - the smaller reservation must never truncate a
+    // real long generation.
+    assert.equal(capturedBody?.["max_completion_tokens"], 128000);
+
+    resolveUpstream(openAiSseStream("hi", 10, 10));
+    await forwardCompleted;
+  });
+
   test("the outbound Anthropic request still uses max_tokens - it's a required field there, not a deprecated one", async () => {
     await prisma.codeAccountBalance.create({ data: { accountId, balanceAtomic: "1000000", reservedAtomic: "0" } });
     let capturedBody: Record<string, unknown> | undefined;
