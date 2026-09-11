@@ -102,6 +102,36 @@ describe("OpenAiProvider.generate", () => {
     assert.deepEqual(capturedBody?.["stream_options"], { include_usage: true });
     assert.equal(capturedBody?.["stream"], true);
   });
+
+  test("forces reasoning_effort to none for gpt-5.6-luna - OpenAI rejects function tools with a reasoning model's default effort on /v1/chat/completions", async () => {
+    let capturedBody: Record<string, unknown> | undefined;
+    globalThis.fetch = (async (_url, init) => {
+      capturedBody = JSON.parse((init as RequestInit).body as string);
+      return sseResponse([JSON.stringify({ choices: [{ delta: { content: "ok" }, finish_reason: "stop" }], usage: { prompt_tokens: 1, completion_tokens: 1 } }), "[DONE]"]);
+    }) as typeof fetch;
+
+    const provider = new OpenAiProvider({ baseUrl: "https://api.openai.com/v1", apiKey: "test" });
+    await provider.generate({
+      model: "gpt-5.6-luna",
+      messages: [{ role: "user", content: "hi" }],
+      tools: [{ name: "read_file", description: "reads a file", parameters: { type: "object", properties: {} } }],
+    });
+
+    assert.equal(capturedBody?.["reasoning_effort"], "none");
+  });
+
+  test("never sends reasoning_effort for a model that doesn't need it", async () => {
+    let capturedBody: Record<string, unknown> | undefined;
+    globalThis.fetch = (async (_url, init) => {
+      capturedBody = JSON.parse((init as RequestInit).body as string);
+      return sseResponse([JSON.stringify({ choices: [{ delta: { content: "ok" }, finish_reason: "stop" }], usage: { prompt_tokens: 1, completion_tokens: 1 } }), "[DONE]"]);
+    }) as typeof fetch;
+
+    const provider = new OpenAiProvider({ baseUrl: "https://api.openai.com/v1", apiKey: "test" });
+    await provider.generate({ model: "gpt-4o", messages: [{ role: "user", content: "hi" }] });
+
+    assert.equal(capturedBody?.["reasoning_effort"], undefined);
+  });
 });
 
 describe("OpenAiProvider.stream", () => {

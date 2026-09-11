@@ -21,6 +21,22 @@ function getEncoding(model: string) {
   }
 }
 
+/**
+ * models whose Chat Completions requests default to a non-"none"
+ * `reasoning_effort` (o-series, the whole gpt-5.6 family default to
+ * "medium") - combined with `tools`, OpenAI rejects the request outright:
+ * "Function tools with reasoning_effort are not supported for <model> in
+ * /v1/chat/completions. To use function tools, use /v1/responses or set
+ * reasoning_effort to 'none'." Paymod Code always sends tools (that's the
+ * whole point of a coding agent), and migrating off Chat Completions to
+ * the Responses API is a real, separate architectural change - not
+ * something to fold into this fix - so every request to one of these
+ * models explicitly asks for "none" instead. This does trade away the
+ * model's actual reasoning behavior for tool-calling compatibility: real,
+ * worth knowing, not silently swallowed.
+ */
+const REASONING_EFFORT_MODELS = new Set(["o1", "o3", "o3-mini", "o4-mini", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]);
+
 type OpenAiToolCall = { id: string; type: "function"; function: { name: string; arguments: string } };
 type OpenAiMessage = {
   role: "system" | "user" | "assistant" | "tool";
@@ -70,6 +86,7 @@ function buildBody(request: ModelRequest) {
     // works across older models (gpt-4o included) too.
     ...(request.maxOutputTokens !== undefined && { max_completion_tokens: request.maxOutputTokens }),
     ...(request.temperature !== undefined && { temperature: request.temperature }),
+    ...(REASONING_EFFORT_MODELS.has(request.model) && { reasoning_effort: "none" }),
     stream: true,
     // without this, OpenAI omits `usage` from streamed chunks and `parseOpenAiStream`
     // reports 0 tokens even on a real completion - harmless for the text, but it

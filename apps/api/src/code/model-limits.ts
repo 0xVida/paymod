@@ -31,6 +31,25 @@ export function getServerMaxOutput(model: string): number {
   return SERVER_MAX_OUTPUT[model] ?? DEFAULT_MAX_OUTPUT_TOKENS;
 }
 
+/**
+ * models whose Chat Completions requests default to a non-"none"
+ * `reasoning_effort` (o-series, the whole gpt-5.6 family default to
+ * "medium") - combined with `tools`, OpenAI rejects the request outright
+ * ("Function tools with reasoning_effort are not supported for <model>
+ * in /v1/chat/completions"). Paymod Code always sends tools, so every
+ * request to one of these models needs reasoning_effort forced to
+ * "none" - enforced here, server-side, same reason `resolveEffectiveMaxOutput`
+ * doesn't trust the client's max output value either: an older,
+ * not-yet-rebuilt CLI or extension build shouldn't be able to
+ * reintroduce this by not sending it. Mirrors `packages/code-core`'s
+ * `openai-provider.ts` REASONING_EFFORT_MODELS - keep both in sync.
+ */
+const REASONING_EFFORT_MODELS = new Set(["o1", "o3", "o3-mini", "o4-mini", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]);
+
+export function needsReasoningEffortNone(model: string): boolean {
+  return REASONING_EFFORT_MODELS.has(model);
+}
+
 /** `min(requested ?? modelDefault, serverCeiling)` - the one line that keeps a client from reserving or generating past what the server allows. */
 export function resolveEffectiveMaxOutput(model: string, requested: number | undefined): number {
   const ceiling = getServerMaxOutput(model);

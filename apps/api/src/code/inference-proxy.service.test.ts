@@ -254,6 +254,36 @@ describe("InferenceProxyService.meteredForward", () => {
     assert.equal(capturedBody?.["max_tokens"], undefined);
   });
 
+  test("the outbound request for a reasoning-effort model forces reasoning_effort to none - OpenAI rejects function tools otherwise", async () => {
+    await prisma.codeAccountBalance.create({ data: { accountId, balanceAtomic: "1000000", reservedAtomic: "0" } });
+    let capturedBody: Record<string, unknown> | undefined;
+    globalThis.fetch = (async (_url, init) => {
+      capturedBody = JSON.parse((init as RequestInit).body as string);
+      return openAiSseStream("hello", 100, 20);
+    }) as typeof fetch;
+
+    const service = new InferenceProxyService(prisma, fakePricing({ ...PRICING, model: "gpt-5.6-luna" }), fakeProviderKeys());
+    const { params } = forwardParams({ body: { model: "gpt-5.6-luna", messages: [{ role: "user", content: "hi" }], tools: [{ type: "function", function: { name: "read_file" } }] } });
+    await service.meteredForward(params);
+
+    assert.equal(capturedBody?.["reasoning_effort"], "none");
+  });
+
+  test("a non-reasoning-effort model's outbound request never gets a reasoning_effort field at all", async () => {
+    await prisma.codeAccountBalance.create({ data: { accountId, balanceAtomic: "1000000", reservedAtomic: "0" } });
+    let capturedBody: Record<string, unknown> | undefined;
+    globalThis.fetch = (async (_url, init) => {
+      capturedBody = JSON.parse((init as RequestInit).body as string);
+      return openAiSseStream("hello", 100, 20);
+    }) as typeof fetch;
+
+    const service = new InferenceProxyService(prisma, fakePricing(), fakeProviderKeys());
+    const { params } = forwardParams();
+    await service.meteredForward(params);
+
+    assert.equal(capturedBody?.["reasoning_effort"], undefined);
+  });
+
   test("the outbound Anthropic request still uses max_tokens - it's a required field there, not a deprecated one", async () => {
     await prisma.codeAccountBalance.create({ data: { accountId, balanceAtomic: "1000000", reservedAtomic: "0" } });
     let capturedBody: Record<string, unknown> | undefined;

@@ -8,7 +8,7 @@ import type { ModelEvent, ModelUsage } from "@paymod/model-wire";
 import { PrismaService } from "../common/prisma.service.js";
 import { ModelPricingService } from "./model-pricing.service.js";
 import { ProviderKeysService } from "./provider-keys.service.js";
-import { resolveEffectiveMaxOutput, extractRequestedMaxOutput } from "./model-limits.js";
+import { resolveEffectiveMaxOutput, extractRequestedMaxOutput, needsReasoningEffortNone } from "./model-limits.js";
 import { estimateMaxChargeAtomic, computeActualChargeAtomic } from "./usage-pricing.js";
 
 export type MeteredForwardParams = {
@@ -103,6 +103,11 @@ export class InferenceProxyService {
       // parameter"). Anthropic still wants max_tokens - it's a required
       // field there, not a deprecated one.
       ...(params.wireProvider === "openai" ? { max_completion_tokens: effectiveMaxOutput } : { max_tokens: effectiveMaxOutput }),
+      // o-series and the gpt-5.6 family reject function tools outright
+      // unless reasoning_effort is "none" - forced here for the same
+      // reason max output is: an older client shouldn't be able to
+      // reintroduce this by not sending it.
+      ...(params.wireProvider === "openai" && needsReasoningEffortNone(model) && { reasoning_effort: "none" }),
       stream: true,
       // OpenAI only reports usage in the final chunk when explicitly opted
       // in - without this every charge would compute against 0 tokens.
