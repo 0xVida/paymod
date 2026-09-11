@@ -689,9 +689,4 @@ select:focus {
   padding: 8px 10px;
   margin-top: 4px;
 }
-.turn-error-icon {
-  color: var(--vscode-errorForeground);
-  flex-shrink: 0;
-  margin-top: 1px;
-}
 .turn-error-text { white-space: pre-wrap; word-break: break-word; }

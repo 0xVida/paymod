@@ -10,6 +10,7 @@ import { ModelPricingService } from "./model-pricing.service.js";
 import { ProviderKeysService } from "./provider-keys.service.js";
 import { resolveEffectiveMaxOutput, resolveReservationOutput, extractRequestedMaxOutput, needsReasoningEffortNone } from "./model-limits.js";
 import { estimateMaxChargeAtomic, computeActualChargeAtomic } from "./usage-pricing.js";
+import { usdcAtomicToUsd } from "./deposit.service.js";
 
 export type MeteredForwardParams = {
   provider: InferenceProvider;
@@ -134,7 +135,14 @@ export class InferenceProxyService {
       estimatedAtomic,
     });
     if (!reservation.ok) {
-      throw new PaymodError(ERROR_CODES.INSUFFICIENT_CODE_BALANCE, "Insufficient Paymod Code balance for this request.", { httpStatus: 402 });
+      const currentBalanceAtomic = await this.balances.getSpendableAtomic(params.accountId);
+      const estimatedUsd = usdcAtomicToUsd(estimatedAtomic).toFixed(2);
+      const currentUsd = usdcAtomicToUsd(currentBalanceAtomic).toFixed(2);
+      throw new PaymodError(
+        ERROR_CODES.INSUFFICIENT_CODE_BALANCE,
+        `Insufficient Paymod Code balance for this request. Estimated cost is $${estimatedUsd} USDC; your current balance is $${currentUsd} USDC. Add funds to continue.`,
+        { httpStatus: 402 },
+      );
     }
 
     const upstream = await fetch(params.targetUrl, {

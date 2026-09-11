@@ -3,7 +3,7 @@
   "publisher": "paymod",
   "displayName": "Paymod Code",
   "description": "Pay-as-you-go AI coding agent, funded through Paymod.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "license": "UNLICENSED",
   "repository": {
     "type": "git",

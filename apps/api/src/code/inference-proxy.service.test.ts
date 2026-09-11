@@ -141,7 +141,7 @@ after(async () => {
 });
 
 describe("InferenceProxyService.meteredForward", () => {
-  test("insufficient balance is refused with 402 before any provider fetch happens", async () => {
+  test("insufficient balance is refused with 402 before any provider fetch happens, with a message naming the estimated cost and current balance", async () => {
     await prisma.codeAccountBalance.create({ data: { accountId, balanceAtomic: "0", reservedAtomic: "0" } });
     let fetchCalled = false;
     globalThis.fetch = (async () => {
@@ -156,6 +156,8 @@ describe("InferenceProxyService.meteredForward", () => {
       assert.ok(err instanceof PaymodError);
       assert.equal(err.code, "INSUFFICIENT_CODE_BALANCE");
       assert.equal(err.httpStatus, 402);
+      assert.match(err.message, /Estimated cost is \$\d+\.\d{2} USDC/);
+      assert.match(err.message, /your current balance is \$0\.00 USDC/);
       return true;
     });
     assert.equal(fetchCalled, false);
@@ -291,20 +293,19 @@ describe("InferenceProxyService.meteredForward", () => {
     const solPricing: ModelPricingRow = { ...PRICING, provider: "OPENAI", model: "gpt-5.6-sol", inputTokenPriceAtomic: "4000000", outputTokenPriceAtomic: "20000000", markupBasisPoints: 2500 };
     await prisma.codeAccountBalance.create({ data: { accountId, balanceAtomic: "300000", reservedAtomic: "0" } }); // $0.30 - would fail under the old full-ceiling reservation
 
-    let resolveUpstream!: (value: globalThis.Response) => void;
-    const upstreamPromise = new Promise<globalThis.Response>((resolve) => { resolveUpstream = resolve; });
     let capturedBody: Record<string, unknown> | undefined;
     globalThis.fetch = (async (_url, init) => {
       capturedBody = JSON.parse((init as RequestInit).body as string);
-      return upstreamPromise;
+      return openAiSseStream("hi", 10, 10);
     }) as typeof fetch;
 
     const service = new InferenceProxyService(prisma, fakePricing(solPricing), fakeProviderKeys());
     const { params } = forwardParams({ body: { model: "gpt-5.6-sol", messages: [{ role: "user", content: "x".repeat(20000) }] } });
-    const forwardCompleted = service.meteredForward(params);
+    await service.meteredForward(params);
 
-    // while the request is in flight, the reservation is already placed -
-    // check it directly rather than waiting for commit.
+    // estimatedAtomic is set once at reserve time and untouched by
+    // commit() afterward, so it's still readable (and still the number
+    // that mattered) on the now-COMMITTED row.
     const reservation = await prisma.usageReservation.findFirstOrThrow({ where: { accountId } });
     assert.ok(Number(reservation.estimatedAtomic) < 300000, `reservation of ${reservation.estimatedAtomic} should be well under the $0.30 balance, not the ~$3.23 the old full-ceiling sizing would have needed`);
 
@@ -312,9 +313,6 @@ describe("InferenceProxyService.meteredForward", () => {
     // ceiling regardless - the smaller reservation must never truncate a
     // real long generation.
     assert.equal(capturedBody?.["max_completion_tokens"], 128000);
-
-    resolveUpstream(openAiSseStream("hi", 10, 10));
-    await forwardCompleted;
   });
 
   test("the outbound Anthropic request still uses max_tokens - it's a required field there, not a deprecated one", async () => {

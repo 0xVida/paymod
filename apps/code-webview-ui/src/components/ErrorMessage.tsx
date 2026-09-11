@@ -6,7 +6,6 @@
 export function ErrorMessage({ text }: { text: string }) {
   return (
     <div className="turn-error">
-      <span className="codicon codicon-error turn-error-icon" />
       <span className="turn-error-text">{text}</span>
     </div>
   );
