@@ -1,4 +1,4 @@
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import bs58 from "bs58";
 
 /**
@@ -19,6 +19,67 @@ export function getSolanaRpcUrl(): string {
   if (url) return url;
   if (isProduction()) throw new Error("SOLANA_RPC_URL must be set in production");
   return "https://api.devnet.solana.com";
+}
+
+/**
+ * Optional: some RPC providers (Tatum, among others) gate real methods
+ * like `getSignaturesForAddress` behind an API key sent as a header, not
+ * a URL query param - passing none is fine for providers that don't
+ * require it (the public devnet default, a provider that embeds the key
+ * in the URL itself).
+ */
+function getSolanaRpcApiKey(): string | undefined {
+  return process.env.SOLANA_RPC_API_KEY;
+}
+
+/** optional backup RPC endpoint, tried only if the primary's call rejects - never required, unlike `SOLANA_RPC_URL` itself. */
+function getSolanaRpcUrl2(): string | undefined {
+  return process.env.SOLANA_RPC_URL_2;
+}
+
+/**
+ * Transparent per-call failover: every method call on the returned object
+ * tries the primary connection first and, only on rejection, retries the
+ * same call against the secondary. Real Solana RPC providers do go down
+ * or rate-limit independently of each other, and a `Connection` has no
+ * built-in multi-endpoint mode - wrapping it in a `Proxy` gets failover
+ * for every method (`getSignaturesForAddress`, `sendAndConfirmTransaction`,
+ * etc.) without hand-wrapping each call site that uses one.
+ */
+function withFailover(primary: Connection, secondary: Connection): Connection {
+  return new Proxy(primary, {
+    get(target, property, receiver) {
+      const value = Reflect.get(target, property, receiver);
+      if (typeof value !== "function") return value;
+      return async (...args: unknown[]) => {
+        try {
+          return await value.apply(target, args);
+        } catch (primaryError) {
+          try {
+            const fallback = Reflect.get(secondary, property, secondary);
+            return await fallback.apply(secondary, args);
+          } catch {
+            throw primaryError;
+          }
+        }
+      };
+    },
+  });
+}
+
+/** the one place a `Connection` gets constructed - `sweep.service.ts` and `deposit.service.ts` both use this rather than building their own, so the API key header (and the optional backup endpoint) is never forgotten at a second call site. */
+export function createSolanaConnection(): Connection {
+  const apiKey = getSolanaRpcApiKey();
+  const primary = new Connection(getSolanaRpcUrl(), {
+    commitment: "confirmed",
+    ...(apiKey && { httpHeaders: { "x-api-key": apiKey } }),
+  });
+
+  const secondaryUrl = getSolanaRpcUrl2();
+  if (!secondaryUrl) return primary;
+
+  const secondary = new Connection(secondaryUrl, { commitment: "confirmed" });
+  return withFailover(primary, secondary);
 }
 
 export function getUsdcMint(): PublicKey {

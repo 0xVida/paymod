@@ -4,7 +4,7 @@ import { createAssociatedTokenAccountInstruction, createTransferInstruction, get
 import { PrismaService } from "../common/prisma.service.js";
 import { AuditService } from "../audit/audit.service.js";
 import { decryptSecret } from "../common/secret-encryption.js";
-import { getRelayerKeypair, getSolanaRpcUrl, getTreasuryUsdcAddress, getUsdcMint } from "./solana-config.js";
+import { createSolanaConnection, getRelayerKeypair, getTreasuryUsdcAddress, getUsdcMint } from "./solana-config.js";
 
 export type SweepResult = { swept: boolean; amountUsdcAtomic?: string };
 
@@ -52,7 +52,7 @@ export class SweepService {
     private readonly audit: AuditService,
   ) {}
 
-  async sweep(accountId: string, connection: Connection = new Connection(getSolanaRpcUrl(), "confirmed")): Promise<SweepResult> {
+  async sweep(accountId: string, connection: Connection = createSolanaConnection()): Promise<SweepResult> {
     let relayer: Keypair;
     let treasuryAddress: PublicKey;
     try {

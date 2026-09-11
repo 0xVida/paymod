@@ -1,12 +1,12 @@
 import { Injectable } from "@nestjs/common";
-import { Connection, Keypair, PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey } from "@solana/web3.js";
 import type { ParsedTransactionWithMeta } from "@solana/web3.js";
 import { newId } from "@paymod/shared";
 import { CodeBalanceRepository } from "@paymod/database";
 import { PrismaService } from "../common/prisma.service.js";
 import { AuditService } from "../audit/audit.service.js";
 import { encryptSecret, decryptSecret } from "../common/secret-encryption.js";
-import { getSolanaRpcUrl, getUsdcMint } from "./solana-config.js";
+import { createSolanaConnection, getUsdcMint } from "./solana-config.js";
 import { SweepService } from "./sweep.service.js";
 
 const USDC_ATOMIC_PER_DOLLAR = 1_000_000n;
@@ -18,7 +18,7 @@ export interface SolanaRpc {
 }
 
 export function defaultSolanaRpc(): SolanaRpc {
-  return new Connection(getSolanaRpcUrl(), "confirmed");
+  return createSolanaConnection();
 }
 
 /** sum of qualifying USDC transfers *to* `owner`'s associated token account in one transaction, in USDC's own 6-decimal atomic unit. Ignores everything else in the transaction - outgoing transfers, unrelated token movements, a missing pre-balance (the account's first-ever USDC deposit has no `preTokenBalances` entry, treated as starting from zero). */
