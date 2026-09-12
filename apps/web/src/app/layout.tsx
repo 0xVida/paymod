@@ -24,6 +24,9 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
   },
+  other: {
+    "ory-verify": "orynth-0407c202c8814cb3b8440b84ac107f1c",
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
